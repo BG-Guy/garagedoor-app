@@ -176,6 +176,14 @@ textarea { resize: none; }
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 14px; padding: 14px;
   margin-bottom: 10px;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none; -webkit-user-select: none;
+}
+.entry-item.selected {
+  border-color: rgba(249,115,22,0.7);
+  background: rgba(249,115,22,0.08);
 }
 
 /* ── Progress bar ── */

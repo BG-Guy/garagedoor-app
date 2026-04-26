@@ -138,14 +138,15 @@ document.getElementById('entryForm').addEventListener('submit', function(e) {
     id:            Date.now().toString(),
     date:          document.getElementById('entryDate').value,
     description:   document.getElementById('entryDesc').value.trim(),
-    totalPrice:    +document.getElementById('totalPrice').value    || 0,
-    paidCC:        +document.getElementById('paidCC').value        || 0,
-    paidCheck:     +document.getElementById('paidCheck').value     || 0,
-    paidCash:      +document.getElementById('paidCash').value      || 0,
-    totalParts:    +document.getElementById('totalParts').value    || 0,
+    totalPrice:    +document.getElementById('totalPrice').value || 0,
+    paidCC:        +document.getElementById('paidCC').value     || 0,
+    paidCheck:     +document.getElementById('paidCheck').value  || 0,
+    paidCash:      +document.getElementById('paidCash').value   || 0,
+    totalParts:    +document.getElementById('totalParts').value || 0,
+    tip:           +document.getElementById('entryTip').value   || 0,
   };
   addEntry(entry);
-  ['entryDesc','totalPrice','paidCC','paidCheck','paidCash','totalParts'].forEach(id =>
+  ['entryDesc','totalPrice','paidCC','paidCheck','paidCash','totalParts','entryTip'].forEach(id =>
     document.getElementById(id).value = ''
   );
   document.getElementById('entryDate').value = new Date().toISOString().slice(0,10);
@@ -319,25 +320,72 @@ function renderAllTime(all, jobCount) {
     </div>`).join('');
 }
 
+// ─── History selection state ───────────────────────────────
+let selectedIds = new Set();
+
+function toggleSelect(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  // Toggle class on the card directly — no full re-render
+  const card = document.querySelector(`.entry-item[data-id="${id}"]`);
+  if (card) card.classList.toggle('selected', selectedIds.has(id));
+  const chk = document.getElementById('chk_' + id);
+  if (chk) { chk.textContent = selectedIds.has(id) ? '✓' : ''; chk.style.background = selectedIds.has(id) ? '#f97316' : 'transparent'; chk.style.borderColor = selectedIds.has(id) ? '#f97316' : 'rgba(255,255,255,0.25)'; }
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  const count   = selectedIds.size;
+  const bar     = document.getElementById('summarizeBar');
+  const countEl = document.getElementById('summarizeCount');
+  const selBtn  = document.getElementById('selectAllBtn');
+  bar.style.display   = count > 0 ? 'block' : 'none';
+  if (countEl) countEl.textContent = count;
+  const total = load().length;
+  if (selBtn) selBtn.textContent = selectedIds.size === total && total > 0 ? 'Clear All' : 'Select All';
+}
+
+function toggleSelectAll() {
+  const entries = load();
+  if (selectedIds.size === entries.length) {
+    selectedIds.clear();
+  } else {
+    entries.forEach(e => selectedIds.add(e.id));
+  }
+  renderHistory();
+}
+
 // ─── History ───────────────────────────────────────────────
 function renderHistory() {
   const entries = load().sort((a,b) => new Date(b.date) - new Date(a.date));
   const list    = document.getElementById('historyList');
   const empty   = document.getElementById('historyEmpty');
-  if (!entries.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  if (!entries.length) { list.innerHTML = ''; empty.style.display = 'block'; updateSelectionUI(); return; }
   empty.style.display = 'none';
 
   list.innerHTML = entries.map(e => {
+    const sel       = selectedIds.has(e.id);
     const profit    = (+e.totalPrice||0) - (+e.totalParts||0);
     const profitCol = profit >= 0 ? '#4ade80' : '#f87171';
     const badges    = [];
     if (e.paidCC    > 0) badges.push(`<span class="badge" style="background:rgba(147,197,253,0.15);color:#93c5fd;">💳 ${f0(e.paidCC)}</span>`);
     if (e.paidCheck > 0) badges.push(`<span class="badge" style="background:rgba(253,224,71,0.15);color:#fde047;">📝 ${f0(e.paidCheck)}</span>`);
     if (e.paidCash  > 0) badges.push(`<span class="badge" style="background:rgba(74,222,128,0.15);color:#4ade80;">💵 ${f0(e.paidCash)}</span>`);
+    if ((+e.tip||0) > 0) badges.push(`<span class="badge" style="background:rgba(74,222,128,0.12);color:#86efac;">🎁 Tip ${f0(e.tip)}</span>`);
 
     return `
-      <div class="entry-item">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+      <div class="entry-item${sel ? ' selected' : ''}" data-id="${e.id}" onclick="toggleSelect('${e.id}')">
+        <!-- Checkbox indicator -->
+        <div id="chk_${e.id}" style="
+            position:absolute;top:14px;right:14px;
+            width:22px;height:22px;border-radius:50%;
+            border:2px solid ${sel ? '#f97316' : 'rgba(255,255,255,0.25)'};
+            background:${sel ? '#f97316' : 'transparent'};
+            display:flex;align-items:center;justify-content:center;
+            font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">
+          ${sel ? '✓' : ''}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;padding-right:32px;">
           <div>
             <div style="font-size:12px;color:rgba(255,255,255,0.38);">${fDate(e.date)}</div>
             <div style="font-size:15px;font-weight:700;margin-top:2px;">${e.description || 'Job Entry'}</div>
@@ -350,20 +398,77 @@ function renderHistory() {
         ${badges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${badges.join('')}</div>` : ''}
         ${e.totalParts > 0 ? `<div style="font-size:12px;color:#f87171;margin-bottom:6px;">Parts: ${f0(e.totalParts)}</div>` : ''}
         ${(() => {
-          const myDue   = (+e.totalPrice||0) * 0.30 + (+e.totalParts||0);
-          const iGot    = (+e.paidCheck||0) + (+e.paidCash||0);
-          const iOweCo  = Math.max(0, iGot - myDue);
-          const coOwes  = Math.max(0, myDue - iGot);
-          const parts   = [];
-          if (coOwes > 0) parts.push(`<span style="color:#4ade80;">Co. owes me: ${f0(coOwes)}</span>`);
-          if (iOweCo > 0) parts.push(`<span style="color:#f87171;">I owe co.: ${f0(iOweCo)}</span>`);
-          return parts.length ? `<div style="font-size:12px;margin-bottom:6px;">${parts.join(' &nbsp;·&nbsp; ')}</div>` : '';
+          const myDue  = (+e.totalPrice||0) * 0.30 + (+e.totalParts||0);
+          const iGot   = (+e.paidCheck||0) + (+e.paidCash||0);
+          const iOweCo = Math.max(0, iGot - myDue);
+          const coOwes = Math.max(0, myDue - iGot);
+          const pts    = [];
+          if (coOwes > 0) pts.push(`<span style="color:#4ade80;">Co. owes me: ${f0(coOwes)}</span>`);
+          if (iOweCo > 0) pts.push(`<span style="color:#f87171;">I owe co.: ${f0(iOweCo)}</span>`);
+          return pts.length ? `<div style="font-size:12px;margin-bottom:6px;">${pts.join(' &nbsp;·&nbsp; ')}</div>` : '';
         })()}
-        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
-          <button class="btn-sm danger" onclick="deleteOne('${e.id}')">Delete</button>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="btn-sm danger" onclick="event.stopPropagation();deleteOne('${e.id}')">Delete</button>
         </div>
       </div>`;
   }).join('');
+
+  updateSelectionUI();
+}
+
+// ─── Summary modal ─────────────────────────────────────────
+function summarizeSelected() {
+  const entries = load().filter(e => selectedIds.has(e.id));
+  if (!entries.length) { toast('Select at least one job', '#f97316'); return; }
+
+  const t = entries.reduce((a, e) => {
+    a.price += +e.totalPrice || 0;
+    a.parts += +e.totalParts || 0;
+    a.cc    += +e.paidCC     || 0;
+    a.cash  += +e.paidCash   || 0;
+    a.check += +e.paidCheck  || 0;
+    a.tip   += +e.tip        || 0;
+    return a;
+  }, { price:0, parts:0, cc:0, cash:0, check:0, tip:0 });
+
+  const myDue   = t.price * 0.30 + t.parts;
+  const iGot    = t.check + t.cash;
+  const iOwe    = Math.max(0, iGot - myDue);
+  const coOwes  = Math.max(0, myDue - iGot);
+
+  const text = [
+    `T jobs:          ${entries.length}`,
+    `T price:         ${f2(t.price)}`,
+    `T parts:         ${f2(t.parts)}`,
+    `Paid by cc:      ${f2(t.cc)}`,
+    `Paid by cash:    ${f2(t.cash)}`,
+    `Paid by check:   ${f2(t.check)}`,
+    `T tip:           ${f2(t.tip)}`,
+    `Owe the company: ${f2(iOwe)}`,
+    `Company owe me:  ${f2(coOwes)}`,
+  ].join('\n');
+
+  document.getElementById('summaryText').textContent = text;
+  document.getElementById('summarySubtitle').textContent =
+    `${entries.length} job${entries.length > 1 ? 's' : ''} selected`;
+
+  const overlay = document.getElementById('summaryOverlay');
+  overlay.style.display = 'flex';
+  overlay.addEventListener('click', function onBg(ev) {
+    if (ev.target === overlay) { closeSummaryModal(); overlay.removeEventListener('click', onBg); }
+  });
+}
+
+function closeSummaryModal() {
+  document.getElementById('summaryOverlay').style.display = 'none';
+}
+
+function copySummaryText() {
+  const text = document.getElementById('summaryText').textContent.trim();
+  navigator.clipboard.writeText(text).then(
+    ()  => toast('✓ Copied!'),
+    ()  => toast('Copy failed — select text manually', '#f97316')
+  );
 }
 
 function deleteOne(id) {

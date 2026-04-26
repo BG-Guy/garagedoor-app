@@ -218,6 +218,15 @@
             </div>
           </div>
 
+          <!-- Tip -->
+          <div style="margin-bottom:18px;">
+            <label class="label-sm">Tip (optional)</label>
+            <div class="input-wrap has-prefix">
+              <span class="prefix" style="color:rgba(74,222,128,0.7);">$</span>
+              <input type="number" id="entryTip" min="0" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+
           <button type="submit" class="btn-primary">Save Job Entry ✓</button>
         </form>
       </div>
@@ -278,11 +287,30 @@
 
     <!-- ══ TAB: HISTORY ══ -->
     <div id="tab-history" class="tab">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <div style="font-size:17px; font-weight:700;">All Entries</div>
-        <div style="display:flex; gap:8px;">
-          <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
-          <button class="btn-sm danger" onclick="confirmClearAll()">Clear All</button>
+      <!-- Top action bar -->
+      <div style="margin-bottom:14px;">
+        <!-- Summarize row — visible when items selected -->
+        <div id="summarizeBar" style="display:none; margin-bottom:10px;">
+          <button onclick="summarizeSelected()" style="
+              width:100%; padding:14px; border-radius:14px;
+              background:linear-gradient(135deg,#f97316,#ea580c);
+              color:#fff; font-size:16px; font-weight:700;
+              border:none; cursor:pointer;
+              box-shadow:0 4px 20px rgba(249,115,22,0.35);">
+            📋 Summarize <span id="summarizeCount">0</span> Selected Jobs
+          </button>
+        </div>
+        <!-- Always-visible controls row -->
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:17px;font-weight:700;">All Entries</div>
+            <button id="selectAllBtn" onclick="toggleSelectAll()"
+              class="btn-sm" style="font-size:11px;padding:5px 10px;">Select All</button>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn-sm" onclick="exportCSV()">CSV</button>
+            <button class="btn-sm danger" onclick="confirmClearAll()">Clear</button>
+          </div>
         </div>
       </div>
       <div id="historyList"></div>
@@ -402,6 +430,32 @@ T parts - 230$"></textarea>
 
     </div>
 
+  </div>
+
+  <!-- ══════════════ SUMMARY MODAL ══════════════ -->
+  <div id="summaryOverlay" style="
+      display:none; position:fixed; inset:0; z-index:1000;
+      background:rgba(0,0,0,0.65); backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      align-items:flex-end; justify-content:center;">
+    <div style="
+        background:#111827; border-radius:24px 24px 0 0;
+        padding:28px 24px 44px; width:100%; max-width:480px;
+        border-top:1px solid rgba(255,255,255,0.1);
+        animation:slideUp 0.3s ease;">
+      <div style="width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 20px;"></div>
+      <div style="font-size:18px;font-weight:800;margin-bottom:4px;">Job Summary</div>
+      <div id="summarySubtitle" style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:16px;"></div>
+      <pre id="summaryText" style="
+          font-family:-apple-system,BlinkMacSystemFont,monospace;
+          font-size:14px;line-height:2.1;color:rgba(255,255,255,0.88);
+          white-space:pre-wrap;background:rgba(0,0,0,0.3);
+          border-radius:12px;padding:16px;margin:0 0 16px;border:0;"></pre>
+      <div style="display:flex;gap:10px;">
+        <button onclick="copySummaryText()" class="btn-primary" style="flex:1;">📋 Copy</button>
+        <button onclick="closeSummaryModal()" class="btn-sm" style="flex:1;padding:16px;">Close</button>
+      </div>
+    </div>
   </div>
 
   <!-- ══════════════ BOTTOM NAV ══════════════ -->
