@@ -209,60 +209,65 @@ function renderPartsTab() {
 }
 
 // ─── Add Inventory Modal ───────────────────────────────────
-let inventoryAddCounts = {};
-
 function openAddInventory() {
-  inventoryAddCounts = {};
-  PRESET_PARTS.forEach(function(p) { inventoryAddCounts[p.id] = 0; });
-
   const cfg  = getPartsConfig();
   const list = document.getElementById('inventoryAddList');
   if (!list) return;
 
+  // Wheel items 0–50
+  let wheelItems = '';
+  for (let i = 0; i <= 50; i++) wheelItems += '<div class="swi">' + i + '</div>';
+
   let html = '';
   PRESET_PARTS.forEach(function(p) {
     const curStock = (cfg[p.id] && cfg[p.id].stock) ? cfg[p.id].stock : 0;
-    html += '<div style="display:flex;align-items:center;gap:14px;padding:14px 0;' +
+    html += '<div style="display:flex;align-items:center;gap:14px;padding:16px 0;' +
             'border-bottom:1px solid rgba(255,255,255,0.06);">';
-    html += '<div style="font-size:24px;">' + p.icon + '</div>';
+    // Left: icon + name + stock info
     html += '<div style="flex:1;">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:5px;">';
+    html += '<div style="font-size:22px;">' + p.icon + '</div>';
     html += '<div style="font-size:16px;font-weight:700;">' + p.label + '</div>';
-    html += '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;">' +
-            'In stock: <span id="inv_new_' + p.id + '" style="color:#4ade80;font-weight:700;">' +
-            curStock + '</span></div>';
     html += '</div>';
-    html += '<div style="display:flex;align-items:center;gap:10px;">';
-    html += '<button data-inv-minus="' + p.id + '" style="' +
-            'width:38px;height:38px;border-radius:10px;font-size:22px;line-height:1;' +
-            'background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);' +
-            'color:rgba(255,255,255,0.7);cursor:pointer;">−</button>';
-    html += '<span id="inv_count_' + p.id + '" style="' +
-            'min-width:28px;text-align:center;font-size:26px;font-weight:800;color:#f97316;">0</span>';
-    html += '<button data-inv-plus="' + p.id + '" style="' +
-            'width:38px;height:38px;border-radius:10px;font-size:22px;line-height:1;' +
-            'background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);' +
-            'color:#f97316;cursor:pointer;">+</button>';
-    html += '</div></div>';
+    html += '<div style="font-size:12px;color:rgba(255,255,255,0.4);">' +
+            'Current: <span style="color:#4ade80;font-weight:700;">' + curStock + '</span>' +
+            ' → <span id="inv_future_' + p.id + '" style="color:#f97316;font-weight:700;">' + curStock + '</span></div>';
+    html += '</div>';
+    // Right: scroll wheel
+    html += '<div style="display:flex;flex-direction:column;align-items:center;gap:5px;">';
+    html += '<div style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;">Add</div>';
+    html += '<div class="sww"><div class="sw-line"></div>' +
+            '<div class="sw inv-wheel" data-part="' + p.id + '" data-cur="' + curStock + '">' +
+            wheelItems + '</div></div>';
+    html += '</div>';
+    html += '</div>';
   });
   list.innerHTML = html;
 
-  // Wire up +/- buttons
-  list.querySelectorAll('[data-inv-plus]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const id  = btn.getAttribute('data-inv-plus');
-      inventoryAddCounts[id] = (inventoryAddCounts[id] || 0) + 1;
-      document.getElementById('inv_count_' + id).textContent = inventoryAddCounts[id];
-      const curStock = (cfg[id] && cfg[id].stock) ? cfg[id].stock : 0;
-      document.getElementById('inv_new_' + id).textContent = curStock + inventoryAddCounts[id];
-    });
-  });
-  list.querySelectorAll('[data-inv-minus]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const id  = btn.getAttribute('data-inv-minus');
-      inventoryAddCounts[id] = Math.max(0, (inventoryAddCounts[id] || 0) - 1);
-      document.getElementById('inv_count_' + id).textContent = inventoryAddCounts[id];
-      const curStock = (cfg[id] && cfg[id].stock) ? cfg[id].stock : 0;
-      document.getElementById('inv_new_' + id).textContent = curStock + inventoryAddCounts[id];
+  // Wire up scroll wheels
+  list.querySelectorAll('.inv-wheel').forEach(function(wheel) {
+    const id       = wheel.getAttribute('data-part');
+    const curStock = parseInt(wheel.getAttribute('data-cur')) || 0;
+    const items    = wheel.querySelectorAll('.swi');
+
+    function styleItems(cur) {
+      items.forEach(function(el, i) {
+        const d = Math.abs(i - cur);
+        if      (d === 0) { el.style.color = '#f97316'; el.style.fontSize = '22px'; el.style.fontWeight = '800'; }
+        else if (d === 1) { el.style.color = 'rgba(255,255,255,0.5)'; el.style.fontSize = '16px'; el.style.fontWeight = '700'; }
+        else if (d === 2) { el.style.color = 'rgba(255,255,255,0.2)'; el.style.fontSize = '13px'; el.style.fontWeight = '600'; }
+        else              { el.style.color = 'rgba(255,255,255,0.07)'; el.style.fontSize = '11px'; el.style.fontWeight = '600'; }
+      });
+    }
+
+    // Start at 0 (adding nothing by default)
+    setTimeout(function() { wheel.scrollTop = 0; styleItems(0); }, 30);
+
+    wheel.addEventListener('scroll', function() {
+      const cur = Math.round(wheel.scrollTop / 40);
+      styleItems(cur);
+      const futureEl = document.getElementById('inv_future_' + id);
+      if (futureEl) futureEl.textContent = curStock + cur;
     });
   });
 
@@ -280,14 +285,16 @@ function closeAddInventory() {
 function confirmAddInventory() {
   const cfg = getPartsConfig();
   let anyAdded = false;
-  PRESET_PARTS.forEach(function(p) {
-    const qty = inventoryAddCounts[p.id] || 0;
+  // Read values directly from wheel scroll positions
+  document.querySelectorAll('.inv-wheel').forEach(function(wheel) {
+    const id  = wheel.getAttribute('data-part');
+    const qty = Math.round(wheel.scrollTop / 40);
     if (qty <= 0) return;
-    if (!cfg[p.id]) cfg[p.id] = { price: 0, stock: 0 };
-    cfg[p.id].stock = (cfg[p.id].stock || 0) + qty;
+    if (!cfg[id]) cfg[id] = { price: 0, stock: 0 };
+    cfg[id].stock = (cfg[id].stock || 0) + qty;
     anyAdded = true;
   });
-  if (!anyAdded) { toast('Add at least 1 unit', '#f97316'); return; }
+  if (!anyAdded) { toast('Scroll a wheel to add units', '#f97316'); return; }
   savePartsConfig(cfg);
   closeAddInventory();
   renderPartsTab();
@@ -1343,44 +1350,45 @@ function generateTicketText() {
   const parts  = parseFloat(document.getElementById('totalParts').value) || 0;
   const tip    = parseFloat(document.getElementById('entryTip').value)   || 0;
 
-  // Number-then-$ format matching original note style
   function ft(n) { return Math.round(n || 0) + '$'; }
 
   const lines = [];
 
-  // Original note header (everything above the *** separator)
+  // Preserve original note header (everything above the separator) verbatim
   if (lastRawNote) {
     const sepIdx = lastRawNote.search(/\*{3,}|[-–—]{2,}/);
     const header = (sepIdx > -1 ? lastRawNote.slice(0, sepIdx) : lastRawNote).trim();
     if (header) { lines.push(header); lines.push(''); }
   }
 
-  lines.push('---');
+  lines.push('--- ');
   lines.push('');
-  lines.push('t price: ' + ft(price));
-  if (parts > 0) lines.push('t parts: ' + ft(parts));
+  lines.push('T price: ' + ft(price));
 
-  // Parts used — strip emojis, lowercase, count multiples
-  if (partsRows.length > 0) {
-    const counts = {};
-    partsRows.filter(function(r) { return r.label; }).forEach(function(r) {
-      const clean = r.label.replace(/[^\x00-\x7F]/g, '').trim().toLowerCase();
-      if (clean) counts[clean] = (counts[clean] || 0) + 1;
-    });
-    const partStr = Object.entries(counts)
-      .map(function(e) { return e[1] > 1 ? e[1] + ' ' + e[0] : e[0]; })
-      .join(', ');
-    if (partStr) lines.push('parts used: ' + partStr);
+  if (parts > 0) {
+    // Build parts name list — strip emojis, lowercase, count multiples
+    let partsLine = 'T parts: ' + ft(parts);
+    if (partsRows.length > 0) {
+      const counts = {};
+      partsRows.filter(function(r) { return r.label; }).forEach(function(r) {
+        const clean = r.label.replace(/[^\x00-\x7F]/g, '').trim().toLowerCase();
+        if (clean) counts[clean] = (counts[clean] || 0) + 1;
+      });
+      const partStr = Object.entries(counts)
+        .map(function(e) { return e[1] > 1 ? e[1] + ' ' + e[0] : e[0]; })
+        .join(', ');
+      if (partStr) partsLine += ' ' + partStr;
+    }
+    lines.push(partsLine);
   }
 
-  // Payment method(s)
+  if (tip > 0) lines.push('T tip: ' + ft(tip));
+
   const methods = [];
   if (cc)    methods.push('cc');
   if (check) methods.push('check');
   if (cash)  methods.push('cash');
   lines.push('paid by: ' + (methods.join(', ') || 'n/a'));
-
-  lines.push('tip: ' + ft(tip));
 
   return lines.join('\n');
 }
