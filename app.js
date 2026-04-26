@@ -47,9 +47,10 @@ function agg(entries) {
     acc.check   += +e.paidCheck  || 0;
     acc.cash    += +e.paidCash   || 0;
     acc.parts   += +e.totalParts || 0;
+    acc.tip     += +e.tip        || 0;
     acc.jobs    += 1;
     return acc;
-  }, {revenue:0, cc:0, check:0, cash:0, parts:0, jobs:0});
+  }, {revenue:0, cc:0, check:0, cash:0, parts:0, tip:0, jobs:0});
 
   const myDue         = a.revenue * 0.30 + a.parts;
   const iCollected    = a.check + a.cash;
@@ -155,79 +156,133 @@ document.getElementById('entryForm').addEventListener('submit', function(e) {
   toast('✓ Job entry saved!');
 });
 
-// ─── Dashboard ─────────────────────────────────────────────
+// ─── Insights / Dashboard ──────────────────────────────────
+let drFrom = '', drTo = '';
+
 function renderDashboard() {
   const now     = new Date();
   const entries = load();
-  const all     = agg(entries);
 
-  // Company balance (cumulative, auto-calculated)
-  const net = all.companyOwesMe - all.iOweCompany;
-  document.getElementById('dCompanyOwes').textContent = f0(all.companyOwesMe);
-  document.getElementById('dIOwe').textContent        = f0(all.iOweCompany);
-  const netEl = document.getElementById('dNetBalance');
-  netEl.textContent = (net >= 0 ? '+' : '-') + f2(Math.abs(net));
-  netEl.style.color = net >= 0 ? '#4ade80' : '#f87171';
-
-  // This week
+  // Week vs last week
   const tw = agg(entries.filter(e => inRange(e.date, weekStart(now), weekEnd(now))));
-  // Last week
   const lw = (() => {
     const ls = weekStart(now); ls.setDate(ls.getDate()-7);
     const le = weekEnd(now);   le.setDate(le.getDate()-7);
     return agg(entries.filter(e => inRange(e.date, ls, le)));
   })();
+  document.getElementById('dWeekCompare').innerHTML = compareHtml(tw, lw, 'This Wk', 'Last Wk');
 
-  // Week report (copyable)
-  document.getElementById('dWeekReport').innerHTML = weekReportHtml(tw);
-
-  document.getElementById('dWeekCompare').innerHTML  = compareHtml(tw, lw, 'This Wk', 'Last Wk');
-
+  // Month vs last month
   const tm = agg(entries.filter(e => inRange(e.date, monthStart(now), monthEnd(now))));
   const lm = agg(entries.filter(e => inRange(e.date, lastMonthStart(now), lastMonthEnd(now))));
   document.getElementById('dMonthCompare').innerHTML = compareHtml(tm, lm, 'This Mo', 'Last Mo');
 
-  renderPayBreakdown(all);
-  renderAllTime(all, entries.length);
+  // Default date range = current week
+  drFrom = weekStart(now).toISOString().slice(0,10);
+  drTo   = weekEnd(now).toISOString().slice(0,10);
+  document.getElementById('drFrom').value = drFrom;
+  document.getElementById('drTo').value   = drTo;
+
+  renderDateRangeSections();
 }
 
-// ─── Weekly copyable report ────────────────────────────────
-function weekReportHtml(w) {
+function applyDateRange() {
+  const f = document.getElementById('drFrom').value;
+  const t = document.getElementById('drTo').value;
+  if (!f || !t) { toast('Set both dates', '#f97316'); return; }
+  drFrom = f; drTo = t;
+  renderDateRangeSections();
+}
+
+function rangeLabel() {
+  if (drFrom === drTo) return fDate(drFrom);
+  return fDate(drFrom) + ' – ' + fDate(drTo);
+}
+
+function renderDateRangeSections() {
+  const entries = load();
+  const start   = new Date(drFrom + 'T00:00:00');
+  const end     = new Date(drTo   + 'T23:59:59');
+  const filtered = entries.filter(e => inRange(e.date, start, end));
+  const a        = agg(filtered);
+  const label    = rangeLabel();
+
+  // Company balance
+  const net = a.companyOwesMe - a.iOweCompany;
+  document.getElementById('dBalanceLabel').textContent = `Company Balance — ${label}`;
+  document.getElementById('dCompanyOwes').textContent  = f0(a.companyOwesMe);
+  document.getElementById('dIOwe').textContent         = f0(a.iOweCompany);
+  const netEl = document.getElementById('dNetBalance');
+  netEl.textContent = (net >= 0 ? '+' : '-') + f2(Math.abs(net));
+  netEl.style.color = net >= 0 ? '#4ade80' : '#f87171';
+
+  // Copyable report
   const lines = [
-    `Total jobs: ${w.jobs}`,
-    `Total Price: ${f2(w.revenue)}`,
-    `Amount paid by cash: ${f2(w.cash)}`,
-    `Amount paid by CC: ${f2(w.cc)}`,
-    `Amount paid by check: ${f2(w.check)}`,
-    `Total parts: ${f2(w.parts)}`,
-    `I owe the company: ${f2(w.iOweCompany)}`,
-    `The company owes me: ${f2(w.companyOwesMe)}`,
+    `T jobs:          ${a.jobs}`,
+    `T price:         ${f2(a.revenue)}`,
+    `T parts:         ${f2(a.parts)}`,
+    `Paid by cc:      ${f2(a.cc)}`,
+    `Paid by cash:    ${f2(a.cash)}`,
+    `Paid by check:   ${f2(a.check)}`,
+    `T tip:           ${f2(a.tip)}`,
+    `Owe the company: ${f2(a.iOweCompany)}`,
+    `Company owe me:  ${f2(a.companyOwesMe)}`,
   ].join('\n');
-
-  return `
-    <div class="card" style="border-color:rgba(249,115,22,0.25); margin-bottom:14px;">
-      <div class="slabel">📋 This Week — Report</div>
-      <pre id="reportText" style="
-        font-family: -apple-system, BlinkMacSystemFont, monospace;
-        font-size: 13px; line-height: 2; color: rgba(255,255,255,0.88);
-        white-space: pre-wrap; background: rgba(0,0,0,0.25);
-        border-radius: 10px; padding: 14px; margin: 0 0 12px; border: 0;
-      ">${lines}</pre>
-      <button onclick="copyReport()" style="
-        background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.4);
-        color: #f97316; font-size: 15px; font-weight: 700;
-        padding: 13px; border-radius: 12px; width: 100%; cursor: pointer;
-        transition: opacity 0.15s;
-      ">📋 Copy to Clipboard</button>
+  document.getElementById('dReport').innerHTML = `
+    <div class="card" style="border-color:rgba(249,115,22,0.25);margin-bottom:14px;">
+      <div class="slabel">📋 Report — ${label}</div>
+      <pre id="dReportText" style="
+        font-family:-apple-system,BlinkMacSystemFont,monospace;
+        font-size:13px;line-height:2;color:rgba(255,255,255,0.88);
+        white-space:pre-wrap;background:rgba(0,0,0,0.25);
+        border-radius:10px;padding:14px;margin:0 0 12px;border:0;">${lines}</pre>
+      <button onclick="copyDashReport()" style="
+        background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);
+        color:#f97316;font-size:15px;font-weight:700;
+        padding:13px;border-radius:12px;width:100%;cursor:pointer;">📋 Copy Report</button>
     </div>`;
+
+  // Stats
+  document.getElementById('dStatsLabel').textContent = `Stats — ${label}`;
+  renderStats(a, filtered.length);
 }
 
-function copyReport() {
-  const text = document.getElementById('reportText').textContent.trim();
+function copyDashReport() {
+  const text = document.getElementById('dReportText').textContent.trim();
   navigator.clipboard.writeText(text).then(
-    ()  => toast('✓ Copied to clipboard!'),
-    ()  => toast('Copy failed — select text manually', '#f97316')
+    () => toast('✓ Copied!'),
+    () => toast('Copy failed', '#f97316')
   );
+}
+
+function renderStats(a, jobCount) {
+  const profit = a.revenue - a.parts;
+  const margin = a.revenue > 0 ? ((profit/a.revenue)*100).toFixed(1) : '0.0';
+  const avg    = jobCount > 0 ? a.revenue / jobCount : 0;
+  let top = '—';
+  if (a.cc > 0 || a.check > 0 || a.cash > 0) {
+    if (a.cc >= a.check && a.cc >= a.cash)         top = '💳 Credit Card';
+    else if (a.check >= a.cc && a.check >= a.cash) top = '📝 Check';
+    else                                            top = '💵 Cash';
+  }
+  const rows = [
+    { l: 'Total Jobs',          v: jobCount,           c: '#f97316' },
+    { l: 'Total Revenue',       v: f0(a.revenue),      c: '#fff'    },
+    { l: 'My Commission (30%)', v: f0(a.myCommission), c: '#f97316' },
+    { l: 'Total Parts',         v: f0(a.parts),        c: '#f87171' },
+    { l: 'Total Tips',          v: f0(a.tip),          c: '#4ade80' },
+    { l: 'Total Profit',        v: f0(profit),         c: '#4ade80' },
+    { l: 'Profit Margin',       v: margin + '%',       c: '#4ade80' },
+    { l: 'Avg Ticket',          v: f0(avg),            c: '#f97316' },
+    { l: 'Top Payment',         v: top,                c: '#93c5fd' },
+    { l: 'Company Owes Me',     v: f0(a.companyOwesMe), c: '#4ade80' },
+    { l: 'I Owe Company',       v: f0(a.iOweCompany),   c: '#f87171' },
+  ];
+  document.getElementById('dStats').innerHTML = rows.map(r => `
+    <div class="stat-row">
+      <span style="font-size:14px;color:rgba(255,255,255,0.55);">${r.l}</span>
+      <span style="font-size:16px;font-weight:700;color:${r.c};">${r.v}</span>
+    </div>`).join('');
 }
 
 function compareHtml(cur, prev, curL, prevL) {
@@ -269,55 +324,6 @@ function compareHtml(cur, prev, curL, prevL) {
         </div>
       </div>`;
   }).join('');
-}
-
-function renderPayBreakdown(all) {
-  const total = all.revenue || 1;
-  const items = [
-    { label: '💳 Credit Card', val: all.cc,    color: '#93c5fd' },
-    { label: '📝 Check',       val: all.check, color: '#fde047' },
-    { label: '💵 Cash',        val: all.cash,  color: '#4ade80' },
-  ];
-  document.getElementById('dPayBreakdown').innerHTML = items.map(it => {
-    const pct = ((it.val/total)*100).toFixed(1);
-    return `
-      <div style="margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-          <span style="font-size:14px;font-weight:600;">${it.label}</span>
-          <span style="font-size:14px;font-weight:700;color:${it.color};">${f0(it.val)}<span style="font-size:11px;color:rgba(255,255,255,0.35);"> (${pct}%)</span></span>
-        </div>
-        <div class="pbar-track"><div class="pbar-fill" style="width:${pct}%;background:${it.color};"></div></div>
-      </div>`;
-  }).join('');
-}
-
-function renderAllTime(all, jobCount) {
-  const profit = all.revenue - all.parts;
-  const margin = all.revenue > 0 ? ((profit/all.revenue)*100).toFixed(1) : '0.0';
-  const avg    = jobCount > 0 ? all.revenue / jobCount : 0;
-  let top = '—';
-  if (all.cc > 0 || all.check > 0 || all.cash > 0) {
-    if (all.cc >= all.check && all.cc >= all.cash)         top = '💳 Credit Card';
-    else if (all.check >= all.cc && all.check >= all.cash) top = '📝 Check';
-    else                                                    top = '💵 Cash';
-  }
-  const rows = [
-    { l: 'Total Jobs',          v: jobCount,                   c: '#f97316' },
-    { l: 'Total Revenue',       v: f0(all.revenue),            c: '#fff'    },
-    { l: 'My Commission (30%)', v: f0(all.myCommission),       c: '#f97316' },
-    { l: 'Total Parts Cost',    v: f0(all.parts),              c: '#f87171' },
-    { l: 'Total Profit',        v: f0(profit),                 c: '#4ade80' },
-    { l: 'Profit Margin',       v: margin + '%',               c: '#4ade80' },
-    { l: 'Avg Ticket Size',     v: f0(avg),                    c: '#f97316' },
-    { l: 'Top Payment',         v: top,                        c: '#93c5fd' },
-    { l: 'Company Owes Me',     v: f0(all.companyOwesMe),      c: '#4ade80' },
-    { l: 'I Owe Company',       v: f0(all.iOweCompany),        c: '#f87171' },
-  ];
-  document.getElementById('dAllTime').innerHTML = rows.map(r => `
-    <div class="stat-row">
-      <span style="font-size:14px;color:rgba(255,255,255,0.55);">${r.l}</span>
-      <span style="font-size:16px;font-weight:700;color:${r.c};">${r.v}</span>
-    </div>`).join('');
 }
 
 // ─── History selection state ───────────────────────────────

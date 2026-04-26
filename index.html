@@ -149,15 +149,7 @@
       <!-- Paste & Parse -->
       <div class="card">
         <div class="slabel">📋 Paste Job Note to Auto-Fill</div>
-        <textarea id="parseInput" rows="6" placeholder="Paste your job note here…
-
-***
-
-Spring replacement
-T price: 450$
-paid by: cc
-T parts - 85$
-T tip: 20$"></textarea>
+        <textarea id="parseInput" rows="6" placeholder="Paste your job note here…"></textarea>
         <div style="display:flex;gap:8px;margin-top:10px;">
           <button type="button" onclick="runParser()" class="btn-primary" style="flex:1;">🔍 Parse &amp; Fill</button>
           <button type="button" onclick="document.getElementById('parseInput').value='';document.getElementById('parsePills').innerHTML='';" class="btn-sm" style="padding:14px 16px;">✕</button>
@@ -246,12 +238,37 @@ T tip: 20$"></textarea>
     <!-- ══ TAB: DASHBOARD ══ -->
     <div id="tab-dashboard" class="tab">
 
-      <!-- Weekly Report (copyable) — populated by JS -->
-      <div id="dWeekReport"></div>
+      <!-- Week vs Last Week -->
+      <div class="card">
+        <div class="slabel">This Week vs Last Week</div>
+        <div id="dWeekCompare"></div>
+      </div>
 
-      <!-- Company Balance Card -->
+      <!-- Month vs Last Month -->
+      <div class="card">
+        <div class="slabel">This Month vs Last Month</div>
+        <div id="dMonthCompare"></div>
+      </div>
+
+      <!-- Date Range Picker -->
+      <div class="card">
+        <div class="slabel">📅 Date Range</div>
+        <div class="grid2" style="margin-bottom:12px;">
+          <div>
+            <label class="label-sm">From</label>
+            <input type="date" id="drFrom">
+          </div>
+          <div>
+            <label class="label-sm">To</label>
+            <input type="date" id="drTo">
+          </div>
+        </div>
+        <button onclick="applyDateRange()" class="btn-primary" style="font-size:15px;padding:13px;">Apply</button>
+      </div>
+
+      <!-- Company Balance (date range) -->
       <div class="card-blue">
-        <div class="slabel">Company Balance (Cumulative)</div>
+        <div class="slabel" id="dBalanceLabel">Company Balance — This Week</div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
           <div>
             <div class="label-sm green">Company Owes Me</div>
@@ -270,28 +287,13 @@ T tip: 20$"></textarea>
         </div>
       </div>
 
-      <!-- Week vs Last Week -->
-      <div class="card">
-        <div class="slabel">This Week vs Last Week</div>
-        <div id="dWeekCompare"></div>
-      </div>
+      <!-- Report (date range, copyable) — populated by JS -->
+      <div id="dReport"></div>
 
-      <!-- Month vs Last Month -->
+      <!-- Stats (date range) -->
       <div class="card">
-        <div class="slabel">This Month vs Last Month</div>
-        <div id="dMonthCompare"></div>
-      </div>
-
-      <!-- Payment Methods -->
-      <div class="card">
-        <div class="slabel">Payment Methods — All Time</div>
-        <div id="dPayBreakdown"></div>
-      </div>
-
-      <!-- All-Time Stats -->
-      <div class="card">
-        <div class="slabel">All Time Stats</div>
-        <div id="dAllTime"></div>
+        <div class="slabel" id="dStatsLabel">Stats — This Week</div>
+        <div id="dStats"></div>
       </div>
 
     </div>
@@ -368,7 +370,7 @@ T tip: 20$"></textarea>
         <span class="ni">➕</span><span>New Entry</span>
       </button>
       <button id="nav-dashboard" class="nav-btn" onclick="switchTab('dashboard')">
-        <span class="ni">📊</span><span>Dashboard</span>
+        <span class="ni">📊</span><span>Insights</span>
       </button>
       <button id="nav-history" class="nav-btn" onclick="switchTab('history')">
         <span class="ni">📋</span><span>History</span>
