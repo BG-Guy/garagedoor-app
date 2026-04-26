@@ -164,7 +164,11 @@
 
           <div style="margin-bottom:14px;">
             <label class="label-sm">Date</label>
-            <input type="date" id="entryDate" required>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="date" id="entryDate" required style="flex:1;">
+              <button type="button" onclick="document.getElementById('entryDate').value=new Date().toISOString().slice(0,10)"
+                class="btn-sm" style="white-space:nowrap;padding:13px 14px;flex-shrink:0;">Today</button>
+            </div>
           </div>
 
           <div style="margin-bottom:14px;">
