@@ -171,11 +171,13 @@ function renderDashboard() {
     return agg(entries.filter(e => inRange(e.date, ls, le)));
   })();
   document.getElementById('dWeekCompare').innerHTML = compareHtml(tw, lw, 'This Wk', 'Last Wk');
+  document.getElementById('dWeekStats').innerHTML   = periodStats(tw);
 
   // Month vs last month
   const tm = agg(entries.filter(e => inRange(e.date, monthStart(now), monthEnd(now))));
   const lm = agg(entries.filter(e => inRange(e.date, lastMonthStart(now), lastMonthEnd(now))));
   document.getElementById('dMonthCompare').innerHTML = compareHtml(tm, lm, 'This Mo', 'Last Mo');
+  document.getElementById('dMonthStats').innerHTML   = periodStats(tm);
 
   // Default date range = current week
   drFrom = weekStart(now).toISOString().slice(0,10);
@@ -282,6 +284,27 @@ function renderStats(a, jobCount) {
     <div class="stat-row">
       <span style="font-size:14px;color:rgba(255,255,255,0.55);">${r.l}</span>
       <span style="font-size:16px;font-weight:700;color:${r.c};">${r.v}</span>
+    </div>`).join('');
+}
+
+function periodStats(a) {
+  const profit = a.revenue - a.parts;
+  const avg    = a.jobs > 0 ? a.revenue / a.jobs : 0;
+  const rows = [
+    { l: 'Jobs',            v: a.jobs,             c: '#f97316' },
+    { l: 'Revenue',         v: f0(a.revenue),       c: '#fff'    },
+    { l: 'Commission (30%)',v: f0(a.myCommission),  c: '#f97316' },
+    { l: 'Parts',           v: f0(a.parts),         c: '#f87171' },
+    { l: 'Tips',            v: f0(a.tip),           c: '#4ade80' },
+    { l: 'Profit',          v: f0(profit),          c: '#4ade80' },
+    { l: 'Avg Ticket',      v: f0(avg),             c: '#f97316' },
+    { l: 'Company Owes Me', v: f0(a.companyOwesMe), c: '#4ade80' },
+    { l: 'I Owe Company',   v: f0(a.iOweCompany),   c: '#f87171' },
+  ];
+  return rows.map(r => `
+    <div class="stat-row">
+      <span style="font-size:13px;color:rgba(255,255,255,0.5);">${r.l}</span>
+      <span style="font-size:14px;font-weight:700;color:${r.c};">${r.v}</span>
     </div>`).join('');
 }
 
