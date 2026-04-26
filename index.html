@@ -20,6 +20,66 @@
 </head>
 <body>
 
+  <!-- ══════════════ INSTALL MODAL ══════════════ -->
+  <div id="installOverlay" style="
+    display:none; position:fixed; inset:0; z-index:1000;
+    background:rgba(0,0,0,0.6); backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    align-items:flex-end; justify-content:center;">
+    <div style="
+      background:#111827; border-radius:24px 24px 0 0;
+      padding:28px 24px 40px; width:100%; max-width:480px;
+      border-top:1px solid rgba(255,255,255,0.1);
+      animation:slideUp 0.3s ease;">
+      <!-- Handle bar -->
+      <div style="width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 24px;"></div>
+      <!-- Title -->
+      <div style="font-size:20px;font-weight:800;margin-bottom:6px;">Add to Home Screen</div>
+      <div style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:28px;">Use GaragePro like a native app — no App Store needed.</div>
+      <!-- Steps -->
+      <div style="display:flex;flex-direction:column;gap:18px;margin-bottom:30px;">
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="
+            width:44px;height:44px;border-radius:14px;flex-shrink:0;
+            background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.35);
+            display:flex;align-items:center;justify-content:center;font-size:22px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div>
+            <div style="font-size:15px;font-weight:700;">Tap the Share button</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);">The box-with-arrow icon at the bottom of Safari</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="
+            width:44px;height:44px;border-radius:14px;flex-shrink:0;
+            background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.35);
+            display:flex;align-items:center;justify-content:center;font-size:22px;">➕</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;">Tap "Add to Home Screen"</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);">Scroll down in the share sheet to find it</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div style="
+            width:44px;height:44px;border-radius:14px;flex-shrink:0;
+            background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.35);
+            display:flex;align-items:center;justify-content:center;font-size:22px;">✅</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;">Tap "Add"</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);">GaragePro will appear on your home screen</div>
+          </div>
+        </div>
+      </div>
+      <button onclick="closeInstallModal()" style="
+        width:100%;padding:16px;border-radius:14px;border:none;
+        background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);
+        font-size:16px;font-weight:600;cursor:pointer;">Got it</button>
+    </div>
+  </div>
+
   <!-- ══════════════ HEADER ══════════════ -->
   <header class="page-header">
     <div style="max-width:480px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;">
@@ -35,9 +95,17 @@
           <div style="font-size:11px; color:rgba(255,255,255,0.38);">Business Tracker</div>
         </div>
       </div>
-      <div style="text-align:right;">
-        <div style="font-size:11px; color:rgba(255,255,255,0.38);">Net Balance</div>
-        <div id="hdrBalance" style="font-size:17px; font-weight:800; color:#f97316;">$0</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button id="installBtn" onclick="openInstallModal()" style="
+          display:none;
+          background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);
+          color:#f97316;font-size:12px;font-weight:700;
+          padding:7px 12px;border-radius:10px;cursor:pointer;
+          white-space:nowrap;">⬆ Add to iPhone</button>
+        <div style="text-align:right;">
+          <div style="font-size:11px; color:rgba(255,255,255,0.38);">Net Balance</div>
+          <div id="hdrBalance" style="font-size:17px; font-weight:800; color:#f97316;">$0</div>
+        </div>
       </div>
     </div>
   </header>

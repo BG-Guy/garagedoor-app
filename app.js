@@ -410,5 +410,27 @@ function exportCSV() {
   toast('✓ CSV exported!');
 }
 
+// ─── Install prompt (iOS only) ─────────────────────────────
+function openInstallModal() {
+  const el = document.getElementById('installOverlay');
+  el.style.display = 'flex';
+  // close on backdrop tap
+  el.addEventListener('click', function onBg(e) {
+    if (e.target === el) { closeInstallModal(); el.removeEventListener('click', onBg); }
+  });
+}
+
+function closeInstallModal() {
+  document.getElementById('installOverlay').style.display = 'none';
+}
+
+(function initInstallBtn() {
+  const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isInstalled  = window.navigator.standalone === true;
+  if (isIOS && !isInstalled) {
+    document.getElementById('installBtn').style.display = 'block';
+  }
+})();
+
 // ─── Init ──────────────────────────────────────────────────
 updateBanner();
