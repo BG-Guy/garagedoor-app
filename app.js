@@ -411,6 +411,9 @@ function exportCSV() {
 }
 
 // ─── Job Note Parser ───────────────────────────────────────
+// Separator regex: handles em-dash, en-dash, regular hyphens, asterisks
+const SEP_RX = /[-–—―−]{2,}|\*{3,}/;
+
 function parseJobText(raw) {
   const result = {
     date:        new Date().toISOString().slice(0,10),
@@ -420,37 +423,37 @@ function parseJobText(raw) {
     paidCheck:   0,
     paidCash:    0,
     totalParts:  0,
-    pills:       [],   // detected field labels shown in UI
+    pills:       [],
     payMethod:   '',
   };
 
-  // Split into header (customer info) and job section (after separator)
-  const sepRx   = /[-—]{2,}|\*{3,}/;
-  const sections = raw.split(sepRx);
+  // Split on separator to get header vs job block for description context
+  const sections = raw.split(SEP_RX);
   const header   = sections[0] || '';
-  const jobBlock = sections.slice(1).join('\n');
+  const jobBlock = sections.length > 1 ? sections.slice(1).join('\n') : '';
 
-  // ── Date ──────────────────────────────────────────────────
-  const dateRx = raw.match(/(?:appt|preferred date[^:]*)\s*:\s*(\d{1,2})\/(\d{1,2})/i);
-  if (dateRx) {
+  // ── Date (search full text) ────────────────────────────────
+  const dateM = raw.match(/(?:appt|preferred date[^:]*)\s*:\s*(\d{1,2})\/(\d{1,2})/i);
+  if (dateM) {
     const yr = new Date().getFullYear();
-    result.date = `${yr}-${dateRx[1].padStart(2,'0')}-${dateRx[2].padStart(2,'0')}`;
-    result.pills.push({ label: `📅 ${dateRx[1]}/${dateRx[2]}`, ok: true });
+    result.date = `${yr}-${dateM[1].padStart(2,'0')}-${dateM[2].padStart(2,'0')}`;
+    result.pills.push({ label: `📅 ${dateM[1]}/${dateM[2]}`, ok: true });
   }
 
-  // ── Description (from header fields) ──────────────────────
+  // ── Description from header fields ────────────────────────
   const occuM = header.match(/Occu\s*:\s*(.+)/i);
   const descM = header.match(/Desc\s*:\s*(.+)/i);
   const svcM  = header.match(/Service\s*:\s*(.+)/i);
-  const hDesc = (occuM || descM || svcM);
+  const hDesc = occuM || descM || svcM;
   if (hDesc) result.description = hDesc[1].trim();
 
-  // Enrich description from Notes (take the most specific part)
-  const notesM = raw.match(/Notes\s*:\s*([\s\S]+?)(?=[—\-]{2,}|\*{3,}|$)/i);
+  // Enrich from Notes (most specific segment)
+  const notesM = raw.match(/Notes\s*:\s*([\s\S]+?)(?:$|(?=[-–—]{2,}|\*{3,}))/i);
   if (notesM) {
-    const parts = notesM[1].split(/\/\/|\|/).map(s => s.trim()).filter(s => s.length > 8);
-    // Pick the most descriptive segment (not just "Residential")
-    const detail = parts.find(s => !/^residential$/i.test(s) && !/^call back/i.test(s) && !/warranty/i.test(s));
+    const segs = notesM[1].split(/\/\/|\|/).map(s => s.trim()).filter(s => s.length > 8);
+    const detail = segs.find(s =>
+      !/^residential$/i.test(s) && !/^call back/i.test(s) && !/warranty/i.test(s)
+    );
     if (detail) {
       result.description = result.description
         ? result.description + ' — ' + detail.replace(/\n/g,' ')
@@ -458,76 +461,82 @@ function parseJobText(raw) {
     }
   }
 
-  // ── Parse the job block line by line ──────────────────────
-  const lines = jobBlock.split('\n').map(l => l.trim()).filter(Boolean);
+  // ── Scan ALL lines for price / parts / payment ─────────────
+  // (not just jobBlock — makes parser separator-independent)
+  const allLines = raw.split('\n').map(l => l.trim()).filter(Boolean);
   let priceDetected = false;
 
-  for (const line of lines) {
+  // Grab job-block first descriptive line for description override
+  const jobLines = jobBlock.split('\n').map(l => l.trim()).filter(Boolean);
+  const jFirstDesc = jobLines.find(l =>
+    !l.match(/^(t\s*(price|parts|tip)|parts?\s+\d|remotes?|keypad|\d)/i) &&
+    !l.match(SEP_RX)
+  );
 
-    // "T price 1260 cc" or "T price: 1866.50"
+  for (const line of allLines) {
+    // Skip pure separator lines
+    if (SEP_RX.test(line) && line.replace(SEP_RX,'').trim() === '') continue;
+
+    // ── "T price 1260 cc" / "T price: 1866.50" ──
     const tpM = line.match(/t(?:otal)?\s*price\s*:?\s*\$?([\d,]+(?:\.\d+)?)(?:\s+(cc|credit\s*card|check|cash))?/i);
-    if (tpM) {
-      result.totalPrice  = parseFloat(tpM[1].replace(/,/g,''));
-      if (tpM[2]) result.payMethod = tpM[2].toLowerCase().replace('credit card','cc');
+    if (tpM && !priceDetected) {
+      result.totalPrice = parseFloat(tpM[1].replace(/,/g,''));
+      if (tpM[2]) result.payMethod = normalPay(tpM[2]);
       priceDetected = true;
       result.pills.push({ label: `💰 $${result.totalPrice}`, ok: true });
       continue;
     }
 
-    // Inline "Inspection 60$ cc" — description + price + payment on one line
-    const inlineM = line.match(/^(.+?)\s+\$?([\d,]+(?:\.\d+)?)\s*\$?\s*(cc|credit\s*card|check|cash)\s*$/i);
-    if (inlineM && !priceDetected) {
-      result.totalPrice = parseFloat(inlineM[2].replace(/,/g,''));
-      result.payMethod  = inlineM[3].toLowerCase().replace('credit card','cc');
-      // Use inline description if more specific than header
-      const inlineDesc = inlineM[1].trim();
-      if (!result.description || /garage door repair/i.test(result.description)) {
-        result.description = inlineDesc;
-      }
+    // ── Inline "Inspection 60$ cc" ──
+    const inM = line.match(/^(.+?)\s+\$?([\d,]+(?:\.\d+)?)\s*\$?\s*(cc|credit\s*card|check|cash)\s*$/i);
+    if (inM && !priceDetected) {
+      result.totalPrice = parseFloat(inM[2].replace(/,/g,''));
+      result.payMethod  = normalPay(inM[3]);
+      const inDesc = inM[1].trim();
+      if (!result.description || /^garage door (repair|service)$/i.test(result.description))
+        result.description = inDesc;
       priceDetected = true;
       result.pills.push({ label: `💰 $${result.totalPrice}`, ok: true });
       continue;
     }
 
-    // "T parts 157$" or "T parts: 226"
-    const tparM = line.match(/t(?:otal)?\s*parts?\s*:?\s*\$?([\d,]+(?:\.\d+)?)/i);
-    if (tparM) {
-      result.totalParts = parseFloat(tparM[1].replace(/,/g,''));
+    // ── "T parts 157$" / "T parts 226" / "T parts: 226" ──
+    const tparsM = line.match(/t(?:otal)?\s*parts?\s*:?\s*\$?([\d,]+(?:\.\d+)?)/i);
+    if (tparsM) {
+      result.totalParts = parseFloat(tparsM[1].replace(/,/g,''));
       result.pills.push({ label: `🔩 Parts $${result.totalParts}`, ok: true });
       continue;
     }
 
-    // Standalone payment line: "Check", "Cash", "CC"
-    if (/^\s*(cc|credit\s*card)\s*$/i.test(line)) { result.payMethod = 'cc';    continue; }
-    if (/^\s*check\s*$/i.test(line))               { result.payMethod = 'check'; continue; }
-    if (/^\s*cash\s*$/i.test(line))                { result.payMethod = 'cash';  continue; }
+    // ── Standalone payment word on its own line ──
+    const payOnly = line.match(/^\s*(cc|credit\s*card|check|cash)\s*$/i);
+    if (payOnly) { result.payMethod = normalPay(payOnly[1]); continue; }
+  }
 
-    // First descriptive line in job block (e.g. "Opener replacement")
-    if (!priceDetected && !line.match(/^(parts?|tip|remotes?|keypad|\d)/i)) {
-      if (!result.description || /garage door repair/i.test(result.description)) {
-        result.description = line;
-      }
-    }
+  // Override description with job block first line if more specific
+  if (jFirstDesc && (/^garage door (repair|service)$/i.test(result.description) || !result.description)) {
+    result.description = jFirstDesc;
   }
 
   // ── Assign payment buckets ─────────────────────────────────
   const pm = result.payMethod;
-  if (pm.includes('cc') || pm.includes('credit')) {
-    result.paidCC    = result.totalPrice;
-    result.pills.push({ label: '💳 CC', ok: true });
-  } else if (pm.includes('check')) {
-    result.paidCheck = result.totalPrice;
-    result.pills.push({ label: '📝 Check', ok: true });
-  } else if (pm.includes('cash')) {
-    result.paidCash  = result.totalPrice;
-    result.pills.push({ label: '💵 Cash', ok: true });
-  } else {
-    result.pills.push({ label: '⚠️ Payment unclear', ok: false });
-  }
+  if      (pm === 'cc')    { result.paidCC    = result.totalPrice; result.pills.push({ label: '💳 CC',    ok: true }); }
+  else if (pm === 'check') { result.paidCheck = result.totalPrice; result.pills.push({ label: '📝 Check', ok: true }); }
+  else if (pm === 'cash')  { result.paidCash  = result.totalPrice; result.pills.push({ label: '💵 Cash',  ok: true }); }
+  else                     { result.pills.push({ label: '⚠️ Payment not found', ok: false }); }
 
+  if (!result.totalPrice) result.pills.push({ label: '⚠️ Price not found', ok: false });
   if (!result.description) result.pills.push({ label: '⚠️ No description', ok: false });
 
   return result;
+}
+
+function normalPay(s) {
+  s = s.toLowerCase().trim();
+  if (s.includes('credit') || s === 'cc') return 'cc';
+  if (s.includes('check'))  return 'check';
+  if (s.includes('cash'))   return 'cash';
+  return s;
 }
 
 function runParser() {
