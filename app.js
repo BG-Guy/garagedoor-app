@@ -77,12 +77,97 @@ function toast(msg, color = '#22c55e') {
 
 // ─── Tab switching ─────────────────────────────────────────
 function switchTab(t) {
-  ['new','dashboard','history'].forEach(id => {
+  ['new','dashboard','history','parts'].forEach(id => {
     document.getElementById('tab-' + id).classList.toggle('active', id === t);
     document.getElementById('nav-' + id).classList.toggle('active', id === t);
   });
   if (t === 'dashboard') renderDashboard();
   if (t === 'history')   renderHistory();
+  if (t === 'parts')     renderPartsTab();
+}
+
+// ─── Parts config (prices + inventory) ────────────────────
+const PARTS_CFG_KEY = 'gp_parts_config';
+
+function getPartsConfig() {
+  try { return JSON.parse(localStorage.getItem(PARTS_CFG_KEY)) || {}; }
+  catch { return {}; }
+}
+function savePartsConfig(cfg) { localStorage.setItem(PARTS_CFG_KEY, JSON.stringify(cfg)); }
+
+function updateInventoryOnSave() {
+  const cfg = getPartsConfig();
+  partsRows.forEach(function(r) {
+    if (!r.presetId) return;
+    if (!cfg[r.presetId]) cfg[r.presetId] = { price: 0, stock: 0 };
+    cfg[r.presetId].stock = Math.max(0, (cfg[r.presetId].stock || 0) - 1);
+  });
+  savePartsConfig(cfg);
+}
+
+function renderPartsTab() {
+  const cfg  = getPartsConfig();
+  const list = document.getElementById('partsConfigList');
+  if (!list) return;
+
+  let html = '';
+  PRESET_PARTS.forEach(function(p) {
+    const c     = cfg[p.id] || { price: 0, stock: 0 };
+    const stock = c.stock || 0;
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:14px 0;' +
+            'border-bottom:1px solid rgba(255,255,255,0.06);">';
+    html += '<div style="font-size:20px;flex-shrink:0;">' + p.icon + '</div>';
+    html += '<div style="flex:1;">';
+    html += '<div style="font-size:15px;font-weight:700;">' + p.label + '</div>';
+    html += '<div class="input-wrap has-prefix" style="margin-top:6px;">' +
+            '<span class="prefix">$</span>' +
+            '<input type="number" data-part="' + p.id + '" data-field="price" ' +
+            'min="0" step="0.01" placeholder="0.00" value="' + (c.price || '') + '">' +
+            '</div></div>';
+    html += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">';
+    html += '<div style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;">Stock</div>';
+    html += '<div style="display:flex;align-items:center;gap:6px;">';
+    html += '<button data-part="' + p.id + '" data-delta="-1" style="' +
+            'background:rgba(255,255,255,0.08);border:none;color:#fff;' +
+            'width:30px;height:30px;border-radius:8px;font-size:16px;cursor:pointer;line-height:1;">-</button>';
+    html += '<span id="stock_' + p.id + '" style="font-size:17px;font-weight:800;' +
+            'min-width:28px;text-align:center;color:' + (stock < 2 ? '#f87171' : '#4ade80') + ';">' + stock + '</span>';
+    html += '<button data-part="' + p.id + '" data-delta="1" style="' +
+            'background:rgba(255,255,255,0.08);border:none;color:#fff;' +
+            'width:30px;height:30px;border-radius:8px;font-size:16px;cursor:pointer;line-height:1;">+</button>';
+    html += '</div></div></div>';
+  });
+
+  list.innerHTML = html;
+
+  // Price change → auto-save
+  list.querySelectorAll('[data-field="price"]').forEach(function(inp) {
+    inp.addEventListener('change', function() {
+      const c2 = getPartsConfig();
+      const id = inp.getAttribute('data-part');
+      if (!c2[id]) c2[id] = { price: 0, stock: 0 };
+      c2[id].price = parseFloat(inp.value) || 0;
+      savePartsConfig(c2);
+      toast('✓ Price saved');
+    });
+  });
+
+  // Stock +/-
+  list.querySelectorAll('[data-delta]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const c2    = getPartsConfig();
+      const id    = btn.getAttribute('data-part');
+      const delta = parseInt(btn.getAttribute('data-delta'));
+      if (!c2[id]) c2[id] = { price: 0, stock: 0 };
+      c2[id].stock = Math.max(0, (c2[id].stock || 0) + delta);
+      savePartsConfig(c2);
+      const el = document.getElementById('stock_' + id);
+      if (el) {
+        el.textContent  = c2[id].stock;
+        el.style.color  = c2[id].stock < 2 ? '#f87171' : '#4ade80';
+      }
+    });
+  });
 }
 
 // ─── Week Banner ───────────────────────────────────────────
@@ -180,6 +265,11 @@ function resetForm() {
 
 document.getElementById('entryForm').addEventListener('submit', function(e) {
   e.preventDefault();
+
+  // Generate ticket & snapshot parts BEFORE reset clears state
+  const ticket    = generateTicketText();
+  const partsList = partsRows.map(function(r) { return { label: r.label, price: r.price }; });
+
   const entry = {
     id:          editingId || Date.now().toString(),
     date:        document.getElementById('entryDate').value,
@@ -191,15 +281,21 @@ document.getElementById('entryForm').addEventListener('submit', function(e) {
     totalParts:  +document.getElementById('totalParts').value || 0,
     tip:         +document.getElementById('entryTip').value   || 0,
     rawNote:     lastRawNote || '',
+    partsList,
+    ticketText:  ticket,
   };
 
   if (editingId) {
-    save(load().map(e => e.id === editingId ? entry : e));
-    toast('✓ Job updated!');
+    save(load().map(function(ex) { return ex.id === editingId ? entry : ex; }));
+    toast('✓ Job updated & ticket copied!');
   } else {
     addEntry(entry);
-    toast('✓ Job entry saved!');
+    updateInventoryOnSave();
+    toast('✓ Job saved & ticket copied!');
   }
+
+  // Auto-copy ticket to clipboard
+  navigator.clipboard.writeText(ticket).catch(function() {});
 
   resetForm();
   updateBanner();
@@ -660,16 +756,32 @@ function renderHistory() {
           if (iOweCo > 0) pts.push(`<span style="color:#f87171;">I owe co.: ${f0(iOweCo)}</span>`);
           return pts.length ? `<div style="font-size:12px;margin-bottom:6px;">${pts.join(' &nbsp;·&nbsp; ')}</div>` : '';
         })()}
-        ${e.rawNote ? `
+        ${e.ticketText ? `
         <div style="margin-top:8px;">
-          <button onclick="event.stopPropagation();this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▼')?'📋 Original Note ▲':'📋 Original Note ▼';"
-            style="background:none;border:none;color:rgba(255,255,255,0.35);font-size:11px;font-weight:600;cursor:pointer;padding:0;">
-            📋 Original Note ▼
+          <button onclick="event.stopPropagation();var p=this.nextElementSibling;p.style.display=p.style.display==='none'?'block':'none';this.textContent=p.style.display==='block'?'🎫 Ticket ▲':'🎫 Ticket ▼';"
+            style="background:none;border:none;color:rgba(249,115,22,0.6);font-size:11px;font-weight:700;cursor:pointer;padding:0;">
+            🎫 Ticket ▼
+          </button>
+          <div style="display:none;margin-top:8px;">
+            <pre style="font-family:-apple-system,BlinkMacSystemFont,monospace;
+              font-size:11px;line-height:1.8;color:rgba(255,255,255,0.6);
+              white-space:pre-wrap;background:rgba(0,0,0,0.2);
+              border-radius:8px;padding:10px;border:0;margin:0 0 6px;">${e.ticketText.replace(/</g,'&lt;')}</pre>
+            <button class="btn-sm" data-copy-ticket="${e.id}"
+              style="font-size:11px;padding:5px 12px;color:#f97316;border-color:rgba(249,115,22,0.3);
+                     background:rgba(249,115,22,0.1);">📋 Copy</button>
+          </div>
+        </div>` : ''}
+        ${(!e.ticketText && e.rawNote) ? `
+        <div style="margin-top:8px;">
+          <button onclick="event.stopPropagation();var p=this.nextElementSibling;p.style.display=p.style.display==='none'?'block':'none';this.textContent=p.style.display==='block'?'📋 Note ▲':'📋 Note ▼';"
+            style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:11px;font-weight:600;cursor:pointer;padding:0;">
+            📋 Note ▼
           </button>
           <pre style="display:none;margin-top:8px;font-family:-apple-system,BlinkMacSystemFont,monospace;
-            font-size:11px;line-height:1.7;color:rgba(255,255,255,0.55);
+            font-size:11px;line-height:1.7;color:rgba(255,255,255,0.5);
             white-space:pre-wrap;background:rgba(0,0,0,0.2);
-            border-radius:8px;padding:10px;border:0;overflow-x:auto;">${e.rawNote.replace(/</g,'&lt;')}</pre>
+            border-radius:8px;padding:10px;border:0;">${e.rawNote.replace(/</g,'&lt;')}</pre>
         </div>` : ''}
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
           ${e.rawNote ? `<button class="btn-sm" onclick="event.stopPropagation();copyNote('${e.id}')">📋 Copy Note</button>` : ''}
@@ -680,6 +792,20 @@ function renderHistory() {
   }).join('');
 
   updateSelectionUI();
+
+  // Ticket copy buttons (event delegation safe)
+  list.querySelectorAll('[data-copy-ticket]').forEach(function(btn) {
+    btn.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      const entry = load().find(function(ex) { return ex.id === btn.getAttribute('data-copy-ticket'); });
+      if (entry && entry.ticketText) {
+        navigator.clipboard.writeText(entry.ticketText).then(
+          function() { toast('✓ Ticket copied!'); },
+          function() { toast('Copy failed', '#f97316'); }
+        );
+      }
+    });
+  });
 }
 
 // ─── Summary modal ─────────────────────────────────────────
@@ -929,8 +1055,10 @@ function togglePresetPart(presetId) {
   if (idx >= 0) {
     partsRows.splice(idx, 1);
   } else {
-    const p = PRESET_PARTS.find(p => p.id === presetId);
-    partsRows.push({ rowId: partsNextId++, presetId, label: p.icon + ' ' + p.label, price: 0 });
+    const p     = PRESET_PARTS.find(p => p.id === presetId);
+    const cfg   = getPartsConfig();
+    const price = (cfg[presetId] && cfg[presetId].price) ? cfg[presetId].price : 0;
+    partsRows.push({ rowId: partsNextId++, presetId, label: p.icon + ' ' + p.label, price });
   }
   renderPartsPicker();
 }
@@ -1083,7 +1211,7 @@ function runParser() {
 }
 
 // ─── Generate Ticket ───────────────────────────────────────
-function generateTicket() {
+function generateTicketText() {
   const price  = parseFloat(document.getElementById('totalPrice').value) || 0;
   const cc     = parseFloat(document.getElementById('paidCC').value)     || 0;
   const check  = parseFloat(document.getElementById('paidCheck').value)  || 0;
@@ -1092,41 +1220,70 @@ function generateTicket() {
   const tip    = parseFloat(document.getElementById('entryTip').value)   || 0;
   const desc   = document.getElementById('entryDesc').value.trim();
   const date   = document.getElementById('entryDate').value;
-  const comm   = (price - parts) * 0.30;
 
-  const payParts = [];
-  if (cc)    payParts.push('CC: '    + f2(cc));
-  if (check) payParts.push('Check: ' + f2(check));
-  if (cash)  payParts.push('Cash: '  + f2(cash));
+  const comm       = (price - parts) * 0.30;
+  const myDue      = comm + parts;
+  const iCollected = check + cash;
+  const iOwe       = Math.max(0, iCollected - myDue);
+  const coOwes     = Math.max(0, myDue - iCollected);
+
+  function R(label, val) {
+    return (label + ':').padEnd(18) + val.padStart(10);
+  }
+  const DIV = '─'.repeat(28);
 
   const lines = [];
 
-  // Include original note header (everything before ***) if pasted
+  // Preserve original note header (everything before ***)
   if (lastRawNote) {
     const sepIdx = lastRawNote.search(/\*{3,}|[-–—]{2,}/);
     const header = (sepIdx > -1 ? lastRawNote.slice(0, sepIdx) : lastRawNote).trim();
-    if (header) { lines.push(header); lines.push(''); lines.push('***'); lines.push(''); }
+    if (header) { lines.push(header); lines.push(''); }
   }
 
-  if (desc)  lines.push(desc);
-  if (date)  lines.push('Date: ' + fDate(date));
+  lines.push('***');
   lines.push('');
-  lines.push('T price: ' + f2(price));
-  if (payParts.length)   lines.push('Paid by: ' + payParts.join(', '));
-  if (parts)             lines.push('T parts: ' + f2(parts));
-  if (partsRows.length)  lines.push('Parts replaced: ' + partsListText());
-  lines.push('Commission: ' + f2(comm));
-  if (tip)               lines.push('T tip: ' + f2(tip));
+  if (desc) lines.push(desc);
+  if (date) lines.push(fDate(date));
+  lines.push('');
+  lines.push(DIV);
 
-  const text = lines.join('\n');
+  // Billing
+  lines.push(R('T price', f2(price)));
+  if (cc)    lines.push(R('Paid CC', f2(cc)));
+  if (check) lines.push(R('Paid check', f2(check)));
+  if (cash)  lines.push(R('Paid cash', f2(cash)));
+  if (parts) lines.push(R('T parts', f2(parts)));
+  if (tip)   lines.push(R('T tip', f2(tip)));
+
+  // Parts replaced
+  if (partsRows.length > 0) {
+    lines.push('');
+    lines.push('Parts: ' + partsListText());
+  }
+
+  // Settlement — shows cash/check I collected vs what I'm owed
+  lines.push('');
+  lines.push(DIV);
+  lines.push(R('Commission (30%)', f2(comm)));
+  lines.push(R('My due', f2(myDue)));
+  if (iCollected > 0) lines.push(R('Cash/chk I got', f2(iCollected)));
+  if (iOwe   > 0)     lines.push(R('I owe company', f2(iOwe)));
+  if (coOwes > 0)     lines.push(R('Co. owes me', f2(coOwes)));
+  lines.push(DIV);
+
+  return lines.join('\n');
+}
+
+function generateTicket() {
+  const text = generateTicketText();
   document.getElementById('ticketText').textContent = text;
   document.getElementById('generatedTicket').style.display = 'block';
   document.getElementById('generatedTicket').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function copyGeneratedTicket() {
-  const text = document.getElementById('ticketText').textContent.trim();
-  navigator.clipboard.writeText(text).then(
+  navigator.clipboard.writeText(generateTicketText()).then(
     () => toast('✓ Ticket copied!'),
     () => toast('Copy failed', '#f97316')
   );

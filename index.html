@@ -431,6 +431,16 @@
       </div>
     </div>
 
+    <!-- ══ TAB: PARTS ══ -->
+    <div id="tab-parts" class="tab">
+      <div class="card">
+        <div class="slabel">🔧 Part Costs &amp; Inventory</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:14px;">
+          Prices auto-fill when you select a part. Stock decrements when a job is saved.
+        </div>
+        <div id="partsConfigList"></div>
+      </div>
+    </div>
 
   </div>
 
@@ -464,13 +474,16 @@
   <nav class="bottom-nav">
     <div class="nav-inner">
       <button id="nav-new" class="nav-btn active" onclick="switchTab('new')">
-        <span class="ni">➕</span><span>New Entry</span>
+        <span class="ni">➕</span><span>New</span>
       </button>
       <button id="nav-dashboard" class="nav-btn" onclick="switchTab('dashboard')">
         <span class="ni">📊</span><span>Insights</span>
       </button>
       <button id="nav-history" class="nav-btn" onclick="switchTab('history')">
         <span class="ni">📋</span><span>History</span>
+      </button>
+      <button id="nav-parts" class="nav-btn" onclick="switchTab('parts')">
+        <span class="ni">🔧</span><span>Parts</span>
       </button>
     </div>
   </nav>
