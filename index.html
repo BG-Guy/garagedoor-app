@@ -95,17 +95,9 @@
           <div style="font-size:11px; color:rgba(255,255,255,0.38);">Business Tracker</div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <button id="installBtn" onclick="openInstallModal()" style="
-          display:none;
-          background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);
-          color:#f97316;font-size:12px;font-weight:700;
-          padding:7px 12px;border-radius:10px;cursor:pointer;
-          white-space:nowrap;">⬆ Add to iPhone</button>
-        <div style="text-align:right;">
-          <div style="font-size:11px; color:rgba(255,255,255,0.38);">Net Balance</div>
-          <div id="hdrBalance" style="font-size:17px; font-weight:800; color:#f97316;">$0</div>
-        </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px; color:rgba(255,255,255,0.38);">Net Balance</div>
+        <div id="hdrBalance" style="font-size:17px; font-weight:800; color:#f97316;">$0</div>
       </div>
     </div>
   </header>
@@ -154,9 +146,28 @@
         </div>
       </div>
 
+      <!-- Paste & Parse -->
+      <div class="card">
+        <div class="slabel">📋 Paste Job Note to Auto-Fill</div>
+        <textarea id="parseInput" rows="6" placeholder="Paste your job note here…
+
+***
+
+Spring replacement
+T price: 450$
+paid by: cc
+T parts - 85$
+T tip: 20$"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button type="button" onclick="runParser()" class="btn-primary" style="flex:1;">🔍 Parse &amp; Fill</button>
+          <button type="button" onclick="document.getElementById('parseInput').value='';document.getElementById('parsePills').innerHTML='';" class="btn-sm" style="padding:14px 16px;">✕</button>
+        </div>
+        <div id="parsePills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;"></div>
+      </div>
+
       <!-- Form -->
       <div class="card">
-        <div class="slabel">New Job Entry</div>
+        <div class="slabel">Job Details</div>
         <form id="entryForm">
 
           <div style="margin-bottom:14px;">
@@ -321,114 +332,6 @@
       </div>
     </div>
 
-    <!-- ══ TAB: PARSE ══ -->
-    <div id="tab-parse" class="tab">
-
-      <!-- API Key -->
-      <div class="card" style="margin-bottom:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div class="slabel" style="margin:0;">🤖 OpenAI API Key</div>
-          <a href="https://platform.openai.com/api-keys" target="_blank"
-             style="font-size:11px;color:#f97316;text-decoration:none;">Get key ↗</a>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <div style="flex:1;position:relative;">
-            <input type="password" id="apiKeyInput" placeholder="sk-…"
-                   style="padding-right:44px;"
-                   oninput="previewKey()">
-            <button onclick="toggleKeyVis()" id="keyVisBtn"
-              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
-                     background:none;border:none;color:rgba(255,255,255,0.4);
-                     font-size:16px;cursor:pointer;padding:0;">👁</button>
-          </div>
-          <button onclick="saveApiKey()" class="btn-sm" style="padding:13px 16px;white-space:nowrap;">Save</button>
-        </div>
-        <div id="keyStatus" style="font-size:11px;margin-top:7px;color:rgba(255,255,255,0.35);"></div>
-      </div>
-
-      <!-- Paste area -->
-      <div class="card">
-        <div class="slabel">Paste Job Note</div>
-        <textarea id="parseInput" rows="8" placeholder="Paste the full job note here…
-
-Example:
-4038 Sunset Dr, Youngstown OH
-(479) 221-0824 - LORALEE OBRIEN
-Tuesday 4/21/26, 2-4PM
-
-***
-
-Opener and 3 rolls replacement
-T price: 1317.12$
-paid by: cc
-T parts - 230$"></textarea>
-        <div style="display:flex;gap:8px;margin-top:12px;">
-          <button onclick="runAIParser()" id="aiParseBtn" class="btn-primary" style="flex:2;">
-            🤖 Parse with AI
-          </button>
-          <button onclick="runParser()" class="btn-sm" style="flex:1;padding:14px 8px;font-size:12px;">
-            🔍 Regex
-          </button>
-          <button onclick="clearParser()" class="btn-sm" style="padding:14px 14px;">✕</button>
-        </div>
-      </div>
-
-      <!-- Parsed result (shown after parse) -->
-      <div id="parseResult" style="display:none;">
-        <div class="card" style="border-color:rgba(249,115,22,0.25);">
-          <div class="slabel" style="color:#f97316;">✓ Parsed — Review &amp; Edit</div>
-
-          <!-- Detection pills -->
-          <div id="parsePills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;"></div>
-
-          <div style="margin-bottom:12px;">
-            <label class="label-sm">Date</label>
-            <input type="date" id="p_date">
-          </div>
-          <div style="margin-bottom:12px;">
-            <label class="label-sm">Job Description</label>
-            <textarea id="p_desc" rows="2"></textarea>
-          </div>
-          <div style="margin-bottom:12px;" class="input-price">
-            <label class="label-sm">Total Price</label>
-            <div class="input-wrap has-prefix">
-              <span class="prefix" style="color:rgba(249,115,22,0.7);">$</span>
-              <input type="number" id="p_price" min="0" step="0.01">
-            </div>
-          </div>
-
-          <!-- Payment method -->
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px;margin-bottom:12px;">
-            <div class="slabel" style="margin-bottom:10px;">Payment Method</div>
-            <div class="grid3">
-              <label style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;">
-                <input type="radio" name="p_pay" value="cc" style="width:18px;height:18px;accent-color:#f97316;">
-                <span style="font-size:12px;color:#93c5fd;">💳 CC</span>
-              </label>
-              <label style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;">
-                <input type="radio" name="p_pay" value="check" style="width:18px;height:18px;accent-color:#f97316;">
-                <span style="font-size:12px;color:#fde047;">📝 Check</span>
-              </label>
-              <label style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;">
-                <input type="radio" name="p_pay" value="cash" style="width:18px;height:18px;accent-color:#f97316;">
-                <span style="font-size:12px;color:#4ade80;">💵 Cash</span>
-              </label>
-            </div>
-          </div>
-
-          <div style="margin-bottom:18px;">
-            <label class="label-sm">Total Parts Cost</label>
-            <div class="input-wrap has-prefix">
-              <span class="prefix">$</span>
-              <input type="number" id="p_parts" min="0" step="0.01">
-            </div>
-          </div>
-
-          <button onclick="saveImportedJob()" class="btn-primary">Save Job Entry ✓</button>
-        </div>
-      </div>
-
-    </div>
 
   </div>
 
@@ -462,10 +365,7 @@ T parts - 230$"></textarea>
   <nav class="bottom-nav">
     <div class="nav-inner">
       <button id="nav-new" class="nav-btn active" onclick="switchTab('new')">
-        <span class="ni">➕</span><span>New</span>
-      </button>
-      <button id="nav-parse" class="nav-btn" onclick="switchTab('parse')">
-        <span class="ni">🔍</span><span>Parse</span>
+        <span class="ni">➕</span><span>New Entry</span>
       </button>
       <button id="nav-dashboard" class="nav-btn" onclick="switchTab('dashboard')">
         <span class="ni">📊</span><span>Dashboard</span>

@@ -76,7 +76,7 @@ function toast(msg, color = '#22c55e') {
 
 // ─── Tab switching ─────────────────────────────────────────
 function switchTab(t) {
-  ['new','parse','dashboard','history'].forEach(id => {
+  ['new','dashboard','history'].forEach(id => {
     document.getElementById('tab-' + id).classList.toggle('active', id === t);
     document.getElementById('nav-' + id).classList.toggle('active', id === t);
   });
@@ -525,6 +525,7 @@ function parseJobText(raw) {
     paidCheck:   0,
     paidCash:    0,
     totalParts:  0,
+    tip:         0,
     pills:       [],
     payMethod:   '',
   };
@@ -572,11 +573,20 @@ function parseJobText(raw) {
 
     // ── T parts - 230$  /  T parts: 230  /  T parts 157$ ──
     if (/^t\s*parts?/i.test(line)) {
-      // Grab first number after the "T parts" keyword
       const numM = line.replace(/^t\s*parts?\s*/i, '').match(/(\d[\d,]*(?:\.\d+)?)/);
       if (numM) {
         result.totalParts = parseFloat(numM[1].replace(/,/g, ''));
         result.pills.push({ label: `🔩 Parts $${result.totalParts}`, ok: true });
+      }
+      continue;
+    }
+
+    // ── T tip: 126  /  T tip - 20$  /  T tip 50 ──
+    if (/^t\s*tip/i.test(line)) {
+      const numM = line.replace(/^t\s*tip\s*/i, '').match(/(\d[\d,]*(?:\.\d+)?)/);
+      if (numM) {
+        result.tip = parseFloat(numM[1].replace(/,/g, ''));
+        result.pills.push({ label: `🎁 Tip $${result.tip}`, ok: true });
       }
       continue;
     }
@@ -623,138 +633,26 @@ function normalPay(s) {
   return '';
 }
 
-// ─── API Key helpers ───────────────────────────────────────
-function previewKey() {
-  const v = document.getElementById('apiKeyInput').value;
-  document.getElementById('keyStatus').textContent = v ? `Key entered (${v.length} chars) — tap Save` : '';
-}
-
-function toggleKeyVis() {
-  const inp = document.getElementById('apiKeyInput');
-  inp.type = inp.type === 'password' ? 'text' : 'password';
-}
-
-function saveApiKey() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) { toast('Enter a key first', '#f97316'); return; }
-  localStorage.setItem('gp_openai_key', key);
-  document.getElementById('keyStatus').textContent = '✓ Key saved on this device';
-  document.getElementById('keyStatus').style.color = '#4ade80';
-  toast('✓ API key saved!');
-}
-
-(function loadSavedKey() {
-  const saved = localStorage.getItem('gp_openai_key');
-  if (saved) {
-    document.getElementById('apiKeyInput').value = saved;
-    document.getElementById('keyStatus').textContent = `✓ Key saved (${saved.length} chars)`;
-    document.getElementById('keyStatus').style.color = '#4ade80';
-  }
-})();
-
-// ─── AI Parser (OpenAI) ────────────────────────────────────
-async function runAIParser() {
-  const apiKey = localStorage.getItem('gp_openai_key') || '';
-  if (!apiKey) {
-    toast('Save your OpenAI API key first', '#f97316');
-    document.getElementById('apiKeyInput').focus();
-    return;
-  }
-
-  const raw = document.getElementById('parseInput').value.trim();
-  if (!raw) { toast('Paste a job note first', '#f97316'); return; }
-
-  const btn = document.getElementById('aiParseBtn');
-  btn.textContent = '⏳ Thinking…';
-  btn.disabled = true;
-
-  try {
-    const res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        temperature: 0,
-        max_tokens: 300,
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a data extractor for a garage door business. ' +
-              'Extract job details and return ONLY a JSON object with these exact keys: ' +
-              'description (string), date (YYYY-MM-DD or null), ' +
-              'totalPrice (number), paymentMethod ("cc"|"check"|"cash"|""), totalParts (number). ' +
-              'totalParts is the cost of parts used. paymentMethod: cc means credit card.',
-          },
-          {
-            role: 'user',
-            content: 'Extract job details from this note:\n\n' + raw,
-          },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.error?.message || `HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    const parsed = JSON.parse(data.choices[0].message.content);
-
-    // Build pills from AI result
-    const pills = [];
-    if (parsed.date)          pills.push({ label: `📅 ${parsed.date}`,           ok: true  });
-    if (parsed.totalPrice)    pills.push({ label: `💰 $${parsed.totalPrice}`,     ok: true  });
-    if (parsed.totalParts)    pills.push({ label: `🔩 Parts $${parsed.totalParts}`, ok: true });
-    if (parsed.paymentMethod) pills.push({ label: payLabel(parsed.paymentMethod), ok: true  });
-    else                      pills.push({ label: '⚠️ Payment unclear',           ok: false });
-    pills.push({ label: '🤖 AI', ok: true });
-
-    fillParseResult({
-      date:        parsed.date || new Date().toISOString().slice(0,10),
-      description: parsed.description || '',
-      totalPrice:  parsed.totalPrice  || 0,
-      totalParts:  parsed.totalParts  || 0,
-      payMethod:   parsed.paymentMethod || '',
-      pills,
-    });
-
-  } catch (err) {
-    toast('AI error: ' + err.message, '#ef4444');
-  } finally {
-    btn.textContent = '🤖 Parse with AI';
-    btn.disabled = false;
-  }
-}
-
-function payLabel(pm) {
-  if (pm === 'cc')    return '💳 CC';
-  if (pm === 'check') return '📝 Check';
-  if (pm === 'cash')  return '💵 Cash';
-  return pm;
-}
-
+// ─── Parser → fills main entry form ───────────────────────
 function runParser() {
   const raw = document.getElementById('parseInput').value.trim();
   if (!raw) { toast('Paste a job note first', '#f97316'); return; }
-  fillParseResult(parseJobText(raw));
-}
 
-function fillParseResult(p) {
-  document.getElementById('p_date').value  = p.date  || new Date().toISOString().slice(0,10);
-  document.getElementById('p_desc').value  = p.description || '';
-  document.getElementById('p_price').value = p.totalPrice  || '';
-  document.getElementById('p_parts').value = p.totalParts  || '';
+  const p = parseJobText(raw);
 
-  document.querySelectorAll('input[name="p_pay"]').forEach(r => {
-    r.checked = r.value === (p.payMethod || '');
-  });
+  // Fill the main form fields
+  if (p.date)        document.getElementById('entryDate').value  = p.date;
+  if (p.description) document.getElementById('entryDesc').value  = p.description;
+  document.getElementById('totalPrice').value = p.totalPrice || '';
+  document.getElementById('paidCC').value     = p.paidCC     || '';
+  document.getElementById('paidCheck').value  = p.paidCheck  || '';
+  document.getElementById('paidCash').value   = p.paidCash   || '';
+  document.getElementById('totalParts').value = p.totalParts || '';
+  document.getElementById('entryTip').value   = p.tip        || '';
 
+  recalcPaySum();
+
+  // Show detection pills
   document.getElementById('parsePills').innerHTML = (p.pills || []).map(pl => `
     <span style="
       display:inline-flex;align-items:center;
@@ -764,62 +662,10 @@ function fillParseResult(p) {
       color:${pl.ok ? '#4ade80' : '#f87171'};
     ">${pl.label}</span>`).join('');
 
-  document.getElementById('parseResult').style.display = 'block';
-  document.getElementById('parseResult').scrollIntoView({ behavior:'smooth', block:'start' });
+  // Scroll to form
+  document.getElementById('entryForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  toast('✓ Form filled — review and save!');
 }
-
-function clearParser() {
-  document.getElementById('parseInput').value = '';
-  document.getElementById('parseResult').style.display = 'none';
-}
-
-function saveImportedJob() {
-  const price   = parseFloat(document.getElementById('p_price').value) || 0;
-  const pay     = document.querySelector('input[name="p_pay"]:checked');
-  const payVal  = pay ? pay.value : '';
-
-  const entry = {
-    id:          Date.now().toString(),
-    date:        document.getElementById('p_date').value,
-    description: document.getElementById('p_desc').value.trim(),
-    totalPrice:  price,
-    paidCC:      payVal === 'cc'    ? price : 0,
-    paidCheck:   payVal === 'check' ? price : 0,
-    paidCash:    payVal === 'cash'  ? price : 0,
-    totalParts:  parseFloat(document.getElementById('p_parts').value) || 0,
-  };
-
-  if (!entry.date || !entry.totalPrice) {
-    toast('Date and Total Price are required', '#f97316'); return;
-  }
-
-  addEntry(entry);
-  updateBanner();
-  clearParser();
-  toast('✓ Job entry saved!');
-  switchTab('new');
-}
-
-// ─── Install prompt (iOS only) ─────────────────────────────
-function openInstallModal() {
-  const el = document.getElementById('installOverlay');
-  el.style.display = 'flex';
-  // close on backdrop tap
-  el.addEventListener('click', function onBg(e) {
-    if (e.target === el) { closeInstallModal(); el.removeEventListener('click', onBg); }
-  });
-}
-
-function closeInstallModal() {
-  document.getElementById('installOverlay').style.display = 'none';
-}
-
-(function initInstallBtn() {
-  const isInstalled = window.navigator.standalone === true;
-  if (!isInstalled) {
-    document.getElementById('installBtn').style.display = 'block';
-  }
-})();
 
 // ─── Init ──────────────────────────────────────────────────
 updateBanner();
