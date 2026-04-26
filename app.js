@@ -133,29 +133,65 @@ function recalcPaySum() {
   document.getElementById(id).addEventListener('input', recalcPaySum)
 );
 
+// ─── Edit state ────────────────────────────────────────────
+let editingId = null;
+
+function editJob(id) {
+  const entry = load().find(e => e.id === id);
+  if (!entry) return;
+
+  editingId = id;
+  document.getElementById('entryDate').value  = entry.date        || '';
+  document.getElementById('entryDesc').value  = entry.description || '';
+  document.getElementById('totalPrice').value = entry.totalPrice  || '';
+  document.getElementById('paidCC').value     = entry.paidCC      || '';
+  document.getElementById('paidCheck').value  = entry.paidCheck   || '';
+  document.getElementById('paidCash').value   = entry.paidCash    || '';
+  document.getElementById('totalParts').value = entry.totalParts  || '';
+  document.getElementById('entryTip').value   = entry.tip         || '';
+  recalcPaySum();
+
+  document.getElementById('submitBtn').textContent = 'Update Job Entry ✓';
+  switchTab('new');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  toast('Editing — make changes and save');
+}
+
+function resetForm() {
+  editingId = null;
+  ['entryDesc','totalPrice','paidCC','paidCheck','paidCash','totalParts','entryTip']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('entryDate').value      = new Date().toISOString().slice(0,10);
+  document.getElementById('parseInput').value     = '';
+  document.getElementById('parsePills').innerHTML = '';
+  document.getElementById('submitBtn').textContent = 'Save Job Entry ✓';
+  recalcPaySum();
+}
+
 document.getElementById('entryForm').addEventListener('submit', function(e) {
   e.preventDefault();
   const entry = {
-    id:            Date.now().toString(),
-    date:          document.getElementById('entryDate').value,
-    description:   document.getElementById('entryDesc').value.trim(),
-    totalPrice:    +document.getElementById('totalPrice').value || 0,
-    paidCC:        +document.getElementById('paidCC').value     || 0,
-    paidCheck:     +document.getElementById('paidCheck').value  || 0,
-    paidCash:      +document.getElementById('paidCash').value   || 0,
-    totalParts:    +document.getElementById('totalParts').value || 0,
-    tip:           +document.getElementById('entryTip').value   || 0,
+    id:          editingId || Date.now().toString(),
+    date:        document.getElementById('entryDate').value,
+    description: document.getElementById('entryDesc').value.trim(),
+    totalPrice:  +document.getElementById('totalPrice').value || 0,
+    paidCC:      +document.getElementById('paidCC').value     || 0,
+    paidCheck:   +document.getElementById('paidCheck').value  || 0,
+    paidCash:    +document.getElementById('paidCash').value   || 0,
+    totalParts:  +document.getElementById('totalParts').value || 0,
+    tip:         +document.getElementById('entryTip').value   || 0,
   };
-  addEntry(entry);
-  ['entryDesc','totalPrice','paidCC','paidCheck','paidCash','totalParts','entryTip'].forEach(id =>
-    document.getElementById(id).value = ''
-  );
-  document.getElementById('entryDate').value = new Date().toISOString().slice(0,10);
-  document.getElementById('parseInput').value = '';
-  document.getElementById('parsePills').innerHTML = '';
-  recalcPaySum();
+
+  if (editingId) {
+    save(load().map(e => e.id === editingId ? entry : e));
+    toast('✓ Job updated!');
+  } else {
+    addEntry(entry);
+    toast('✓ Job entry saved!');
+  }
+
+  resetForm();
   updateBanner();
-  toast('✓ Job entry saved!');
 });
 
 // ─── Insights / Dashboard ──────────────────────────────────
@@ -395,10 +431,9 @@ function renderHistory() {
   empty.style.display = 'none';
 
   list.innerHTML = entries.map(e => {
-    const sel       = selectedIds.has(e.id);
-    const profit    = (+e.totalPrice||0) - (+e.totalParts||0);
-    const profitCol = profit >= 0 ? '#4ade80' : '#f87171';
-    const badges    = [];
+    const sel        = selectedIds.has(e.id);
+    const commission = (+e.totalPrice||0) * 0.30;
+    const badges     = [];
     if (e.paidCC    > 0) badges.push(`<span class="badge" style="background:rgba(147,197,253,0.15);color:#93c5fd;">💳 ${f0(e.paidCC)}</span>`);
     if (e.paidCheck > 0) badges.push(`<span class="badge" style="background:rgba(253,224,71,0.15);color:#fde047;">📝 ${f0(e.paidCheck)}</span>`);
     if (e.paidCash  > 0) badges.push(`<span class="badge" style="background:rgba(74,222,128,0.15);color:#4ade80;">💵 ${f0(e.paidCash)}</span>`);
@@ -423,7 +458,7 @@ function renderHistory() {
           </div>
           <div style="text-align:right;flex-shrink:0;margin-left:12px;">
             <div style="font-size:22px;font-weight:800;color:#f97316;">${f0(e.totalPrice)}</div>
-            <div style="font-size:12px;font-weight:600;color:${profitCol};">Profit: ${f0(profit)}</div>
+            <div style="font-size:12px;font-weight:600;color:#4ade80;">Commission: ${f0(commission)}</div>
           </div>
         </div>
         ${badges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${badges.join('')}</div>` : ''}
@@ -438,7 +473,8 @@ function renderHistory() {
           if (iOweCo > 0) pts.push(`<span style="color:#f87171;">I owe co.: ${f0(iOweCo)}</span>`);
           return pts.length ? `<div style="font-size:12px;margin-bottom:6px;">${pts.join(' &nbsp;·&nbsp; ')}</div>` : '';
         })()}
-        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
+          <button class="btn-sm" onclick="event.stopPropagation();editJob('${e.id}')">Edit</button>
           <button class="btn-sm danger" onclick="event.stopPropagation();deleteOne('${e.id}')">Delete</button>
         </div>
       </div>`;
