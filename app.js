@@ -108,7 +108,7 @@ function updateBanner() {
   document.getElementById('wCompanyOwes').textContent = f0(w.companyOwesMe);
   document.getElementById('wIOwe').textContent        = f0(w.iOweCompany);
 
-  const net = all.companyOwesMe - all.iOweCompany;
+  const net = w.companyOwesMe - w.iOweCompany;
   const hdr = document.getElementById('hdrBalance');
   hdr.textContent = (net >= 0 ? '+' : '-') + f2(Math.abs(net));
   hdr.style.color = net >= 0 ? '#4ade80' : '#f87171';
