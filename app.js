@@ -425,9 +425,8 @@ function closeInstallModal() {
 }
 
 (function initInstallBtn() {
-  const isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  const isInstalled  = window.navigator.standalone === true;
-  if (isIOS && !isInstalled) {
+  const isInstalled = window.navigator.standalone === true;
+  if (!isInstalled) {
     document.getElementById('installBtn').style.display = 'block';
   }
 })();
