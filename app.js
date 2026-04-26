@@ -110,37 +110,51 @@ function renderPartsTab() {
   const list = document.getElementById('partsConfigList');
   if (!list) return;
 
+  // Build wheel items string once (0–99)
+  let wheelItems = '';
+  for (let i = 0; i <= 99; i++) wheelItems += '<div class="swi">' + i + '</div>';
+
   let html = '';
   PRESET_PARTS.forEach(function(p) {
     const c     = cfg[p.id] || { price: 0, stock: 0 };
-    const stock = c.stock || 0;
-    html += '<div style="display:flex;align-items:center;gap:10px;padding:14px 0;' +
+    const stock = Math.min(99, c.stock || 0);
+
+    html += '<div style="display:flex;align-items:center;gap:12px;padding:16px 0;' +
             'border-bottom:1px solid rgba(255,255,255,0.06);">';
-    html += '<div style="font-size:20px;flex-shrink:0;">' + p.icon + '</div>';
+
+    // Left: icon + name + price input
     html += '<div style="flex:1;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+    html += '<div style="font-size:22px;">' + p.icon + '</div>';
     html += '<div style="font-size:15px;font-weight:700;">' + p.label + '</div>';
-    html += '<div class="input-wrap has-prefix" style="margin-top:6px;">' +
+    html += '</div>';
+    html += '<div class="input-wrap has-prefix">' +
             '<span class="prefix">$</span>' +
             '<input type="number" data-part="' + p.id + '" data-field="price" ' +
             'min="0" step="0.01" placeholder="0.00" value="' + (c.price || '') + '">' +
             '</div></div>';
-    html += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;">';
+
+    // Right: scroll wheel
+    html += '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">';
     html += '<div style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;">Stock</div>';
-    html += '<div style="display:flex;align-items:center;gap:6px;">';
-    html += '<button data-part="' + p.id + '" data-delta="-1" style="' +
-            'background:rgba(255,255,255,0.08);border:none;color:#fff;' +
-            'width:30px;height:30px;border-radius:8px;font-size:16px;cursor:pointer;line-height:1;">-</button>';
-    html += '<span id="stock_' + p.id + '" style="font-size:17px;font-weight:800;' +
-            'min-width:28px;text-align:center;color:' + (stock < 2 ? '#f87171' : '#4ade80') + ';">' + stock + '</span>';
-    html += '<button data-part="' + p.id + '" data-delta="1" style="' +
-            'background:rgba(255,255,255,0.08);border:none;color:#fff;' +
-            'width:30px;height:30px;border-radius:8px;font-size:16px;cursor:pointer;line-height:1;">+</button>';
-    html += '</div></div></div>';
+    html += '<div class="sww"><div class="sw-line"></div>' +
+            '<div class="sw" data-part="' + p.id + '" data-init="' + stock + '">' +
+            wheelItems + '</div></div>';
+    html += '</div>';
+
+    html += '</div>';
   });
+
+  // Add Inventory button
+  html += '<button id="addInventoryBtn" style="' +
+          'margin-top:18px;width:100%;padding:14px;border-radius:14px;cursor:pointer;' +
+          'background:linear-gradient(135deg,rgba(249,115,22,0.18),rgba(249,115,22,0.07));' +
+          'border:1px solid rgba(249,115,22,0.45);' +
+          'color:#f97316;font-size:15px;font-weight:700;">+ Add Inventory</button>';
 
   list.innerHTML = html;
 
-  // Price change → auto-save
+  // Price inputs → auto-save on change
   list.querySelectorAll('[data-field="price"]').forEach(function(inp) {
     inp.addEventListener('change', function() {
       const c2 = getPartsConfig();
@@ -152,22 +166,132 @@ function renderPartsTab() {
     });
   });
 
-  // Stock +/-
-  list.querySelectorAll('[data-delta]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const c2    = getPartsConfig();
-      const id    = btn.getAttribute('data-part');
-      const delta = parseInt(btn.getAttribute('data-delta'));
-      if (!c2[id]) c2[id] = { price: 0, stock: 0 };
-      c2[id].stock = Math.max(0, (c2[id].stock || 0) + delta);
-      savePartsConfig(c2);
-      const el = document.getElementById('stock_' + id);
-      if (el) {
-        el.textContent  = c2[id].stock;
-        el.style.color  = c2[id].stock < 2 ? '#f87171' : '#4ade80';
-      }
+  // Scroll wheels
+  list.querySelectorAll('.sw').forEach(function(wheel) {
+    const id    = wheel.getAttribute('data-part');
+    const init  = parseInt(wheel.getAttribute('data-init')) || 0;
+    const items = wheel.querySelectorAll('.swi');
+
+    function styleItems(cur) {
+      items.forEach(function(el, i) {
+        const d = Math.abs(i - cur);
+        if      (d === 0) { el.style.color = '#f97316'; el.style.fontSize = '22px'; el.style.fontWeight = '800'; }
+        else if (d === 1) { el.style.color = 'rgba(255,255,255,0.5)'; el.style.fontSize = '16px'; el.style.fontWeight = '700'; }
+        else if (d === 2) { el.style.color = 'rgba(255,255,255,0.2)'; el.style.fontSize = '13px'; el.style.fontWeight = '600'; }
+        else              { el.style.color = 'rgba(255,255,255,0.07)'; el.style.fontSize = '11px'; el.style.fontWeight = '600'; }
+      });
+    }
+
+    // Set initial scroll position after layout
+    setTimeout(function() {
+      wheel.scrollTop = init * 40;
+      styleItems(init);
+    }, 30);
+
+    // On scroll: update visuals + debounce-save
+    let saveTimer;
+    wheel.addEventListener('scroll', function() {
+      const cur = Math.round(wheel.scrollTop / 40);
+      styleItems(cur);
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(function() {
+        const c2 = getPartsConfig();
+        if (!c2[id]) c2[id] = { price: 0, stock: 0 };
+        c2[id].stock = cur;
+        savePartsConfig(c2);
+      }, 200);
     });
   });
+
+  // Add inventory button
+  const addBtn = document.getElementById('addInventoryBtn');
+  if (addBtn) addBtn.addEventListener('click', openAddInventory);
+}
+
+// ─── Add Inventory Modal ───────────────────────────────────
+let inventoryAddCounts = {};
+
+function openAddInventory() {
+  inventoryAddCounts = {};
+  PRESET_PARTS.forEach(function(p) { inventoryAddCounts[p.id] = 0; });
+
+  const cfg  = getPartsConfig();
+  const list = document.getElementById('inventoryAddList');
+  if (!list) return;
+
+  let html = '';
+  PRESET_PARTS.forEach(function(p) {
+    const curStock = (cfg[p.id] && cfg[p.id].stock) ? cfg[p.id].stock : 0;
+    html += '<div style="display:flex;align-items:center;gap:14px;padding:14px 0;' +
+            'border-bottom:1px solid rgba(255,255,255,0.06);">';
+    html += '<div style="font-size:24px;">' + p.icon + '</div>';
+    html += '<div style="flex:1;">';
+    html += '<div style="font-size:16px;font-weight:700;">' + p.label + '</div>';
+    html += '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:2px;">' +
+            'In stock: <span id="inv_new_' + p.id + '" style="color:#4ade80;font-weight:700;">' +
+            curStock + '</span></div>';
+    html += '</div>';
+    html += '<div style="display:flex;align-items:center;gap:10px;">';
+    html += '<button data-inv-minus="' + p.id + '" style="' +
+            'width:38px;height:38px;border-radius:10px;font-size:22px;line-height:1;' +
+            'background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);' +
+            'color:rgba(255,255,255,0.7);cursor:pointer;">−</button>';
+    html += '<span id="inv_count_' + p.id + '" style="' +
+            'min-width:28px;text-align:center;font-size:26px;font-weight:800;color:#f97316;">0</span>';
+    html += '<button data-inv-plus="' + p.id + '" style="' +
+            'width:38px;height:38px;border-radius:10px;font-size:22px;line-height:1;' +
+            'background:rgba(249,115,22,0.15);border:1px solid rgba(249,115,22,0.4);' +
+            'color:#f97316;cursor:pointer;">+</button>';
+    html += '</div></div>';
+  });
+  list.innerHTML = html;
+
+  // Wire up +/- buttons
+  list.querySelectorAll('[data-inv-plus]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const id  = btn.getAttribute('data-inv-plus');
+      inventoryAddCounts[id] = (inventoryAddCounts[id] || 0) + 1;
+      document.getElementById('inv_count_' + id).textContent = inventoryAddCounts[id];
+      const curStock = (cfg[id] && cfg[id].stock) ? cfg[id].stock : 0;
+      document.getElementById('inv_new_' + id).textContent = curStock + inventoryAddCounts[id];
+    });
+  });
+  list.querySelectorAll('[data-inv-minus]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const id  = btn.getAttribute('data-inv-minus');
+      inventoryAddCounts[id] = Math.max(0, (inventoryAddCounts[id] || 0) - 1);
+      document.getElementById('inv_count_' + id).textContent = inventoryAddCounts[id];
+      const curStock = (cfg[id] && cfg[id].stock) ? cfg[id].stock : 0;
+      document.getElementById('inv_new_' + id).textContent = curStock + inventoryAddCounts[id];
+    });
+  });
+
+  const overlay = document.getElementById('inventoryOverlay');
+  overlay.style.display = 'flex';
+  overlay.addEventListener('click', function onBg(ev) {
+    if (ev.target === overlay) { closeAddInventory(); overlay.removeEventListener('click', onBg); }
+  });
+}
+
+function closeAddInventory() {
+  document.getElementById('inventoryOverlay').style.display = 'none';
+}
+
+function confirmAddInventory() {
+  const cfg = getPartsConfig();
+  let anyAdded = false;
+  PRESET_PARTS.forEach(function(p) {
+    const qty = inventoryAddCounts[p.id] || 0;
+    if (qty <= 0) return;
+    if (!cfg[p.id]) cfg[p.id] = { price: 0, stock: 0 };
+    cfg[p.id].stock = (cfg[p.id].stock || 0) + qty;
+    anyAdded = true;
+  });
+  if (!anyAdded) { toast('Add at least 1 unit', '#f97316'); return; }
+  savePartsConfig(cfg);
+  closeAddInventory();
+  renderPartsTab();
+  toast('✓ Inventory updated!');
 }
 
 // ─── Week Banner ───────────────────────────────────────────
@@ -1218,59 +1342,45 @@ function generateTicketText() {
   const cash   = parseFloat(document.getElementById('paidCash').value)   || 0;
   const parts  = parseFloat(document.getElementById('totalParts').value) || 0;
   const tip    = parseFloat(document.getElementById('entryTip').value)   || 0;
-  const desc   = document.getElementById('entryDesc').value.trim();
-  const date   = document.getElementById('entryDate').value;
 
-  const comm       = (price - parts) * 0.30;
-  const myDue      = comm + parts;
-  const iCollected = check + cash;
-  const iOwe       = Math.max(0, iCollected - myDue);
-  const coOwes     = Math.max(0, myDue - iCollected);
-
-  function R(label, val) {
-    return (label + ':').padEnd(18) + val.padStart(10);
-  }
-  const DIV = '─'.repeat(28);
+  // Number-then-$ format matching original note style
+  function ft(n) { return Math.round(n || 0) + '$'; }
 
   const lines = [];
 
-  // Preserve original note header (everything before ***)
+  // Original note header (everything above the *** separator)
   if (lastRawNote) {
     const sepIdx = lastRawNote.search(/\*{3,}|[-–—]{2,}/);
     const header = (sepIdx > -1 ? lastRawNote.slice(0, sepIdx) : lastRawNote).trim();
     if (header) { lines.push(header); lines.push(''); }
   }
 
-  lines.push('***');
+  lines.push('---');
   lines.push('');
-  if (desc) lines.push(desc);
-  if (date) lines.push(fDate(date));
-  lines.push('');
-  lines.push(DIV);
+  lines.push('t price: ' + ft(price));
+  if (parts > 0) lines.push('t parts: ' + ft(parts));
 
-  // Billing
-  lines.push(R('T price', f2(price)));
-  if (cc)    lines.push(R('Paid CC', f2(cc)));
-  if (check) lines.push(R('Paid check', f2(check)));
-  if (cash)  lines.push(R('Paid cash', f2(cash)));
-  if (parts) lines.push(R('T parts', f2(parts)));
-  if (tip)   lines.push(R('T tip', f2(tip)));
-
-  // Parts replaced
+  // Parts used — strip emojis, lowercase, count multiples
   if (partsRows.length > 0) {
-    lines.push('');
-    lines.push('Parts: ' + partsListText());
+    const counts = {};
+    partsRows.filter(function(r) { return r.label; }).forEach(function(r) {
+      const clean = r.label.replace(/[^\x00-\x7F]/g, '').trim().toLowerCase();
+      if (clean) counts[clean] = (counts[clean] || 0) + 1;
+    });
+    const partStr = Object.entries(counts)
+      .map(function(e) { return e[1] > 1 ? e[1] + ' ' + e[0] : e[0]; })
+      .join(', ');
+    if (partStr) lines.push('parts used: ' + partStr);
   }
 
-  // Settlement — shows cash/check I collected vs what I'm owed
-  lines.push('');
-  lines.push(DIV);
-  lines.push(R('Commission (30%)', f2(comm)));
-  lines.push(R('My due', f2(myDue)));
-  if (iCollected > 0) lines.push(R('Cash/chk I got', f2(iCollected)));
-  if (iOwe   > 0)     lines.push(R('I owe company', f2(iOwe)));
-  if (coOwes > 0)     lines.push(R('Co. owes me', f2(coOwes)));
-  lines.push(DIV);
+  // Payment method(s)
+  const methods = [];
+  if (cc)    methods.push('cc');
+  if (check) methods.push('check');
+  if (cash)  methods.push('cash');
+  lines.push('paid by: ' + (methods.join(', ') || 'n/a'));
+
+  lines.push('tip: ' + ft(tip));
 
   return lines.join('\n');
 }

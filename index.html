@@ -488,6 +488,28 @@
     </div>
   </nav>
 
+  <!-- ══════════════ ADD INVENTORY MODAL ══════════════ -->
+  <div id="inventoryOverlay" style="
+      display:none; position:fixed; inset:0; z-index:1000;
+      background:rgba(0,0,0,0.65); backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      align-items:flex-end; justify-content:center;">
+    <div style="
+        background:#111827; border-radius:24px 24px 0 0;
+        padding:28px 24px 44px; width:100%; max-width:480px;
+        border-top:1px solid rgba(255,255,255,0.1);
+        animation:slideUp 0.3s ease; max-height:85vh; overflow-y:auto;">
+      <div style="width:40px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;margin:0 auto 22px;"></div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px;">Add Inventory</div>
+      <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:20px;">How many of each part are you adding?</div>
+      <div id="inventoryAddList"></div>
+      <div style="display:flex;gap:10px;margin-top:24px;">
+        <button onclick="confirmAddInventory()" class="btn-primary" style="flex:1;">✓ Confirm</button>
+        <button onclick="closeAddInventory()" class="btn-sm" style="flex:1;padding:16px;">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
