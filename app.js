@@ -895,6 +895,12 @@ function normalPay(s) {
 // ─── Parser → fills main entry form ───────────────────────
 let lastRawNote = '';
 
+function clearParseBox() {
+  document.getElementById('parseInput').value     = '';
+  document.getElementById('parsePills').innerHTML = '';
+  lastRawNote = '';
+}
+
 function runParser() {
   const raw = document.getElementById('parseInput').value.trim();
   if (!raw) { toast('Paste a job note first', '#f97316'); return; }
