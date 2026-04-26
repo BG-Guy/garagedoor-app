@@ -356,11 +356,17 @@ function periodStats(a) {
 }
 
 function compareHtml(cur, prev, curL, prevL) {
+  const curComm  = cur.revenue  * 0.30 - cur.parts;
+  const prevComm = prev.revenue * 0.30 - prev.parts;
+  const curAvg   = cur.jobs  > 0 ? cur.revenue  / cur.jobs  : 0;
+  const prevAvg  = prev.jobs > 0 ? prev.revenue / prev.jobs : 0;
+
   const items = [
-    { label: 'Revenue',    cur: cur.revenue,             prev: prev.revenue,             color: '#f97316' },
-    { label: 'Profit',     cur: cur.revenue - cur.parts, prev: prev.revenue - prev.parts, color: '#4ade80' },
-    { label: 'Parts Cost', cur: cur.parts,               prev: prev.parts,               color: '#f87171' },
-    { label: 'Jobs',       cur: cur.jobs,                prev: prev.jobs,                color: '#93c5fd', money: false },
+    { label: 'Revenue',    cur: cur.revenue, prev: prev.revenue, color: '#f97316' },
+    { label: 'Commission', cur: curComm,      prev: prevComm,     color: '#4ade80' },
+    { label: 'Parts Cost', cur: cur.parts,    prev: prev.parts,   color: '#f87171' },
+    { label: 'Jobs',       cur: cur.jobs,     prev: prev.jobs,    color: '#93c5fd', money: false },
+    { label: 'AVG Ticket', cur: curAvg,       prev: prevAvg,      color: '#fde047' },
   ];
   return items.map(it => {
     const diff = it.cur - it.prev;
