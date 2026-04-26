@@ -437,9 +437,42 @@ function toggleSelectAll() {
   renderHistory();
 }
 
+// ─── History date filter ───────────────────────────────────
+function setHistoryRange(mode) {
+  const now = new Date();
+  if (mode === 'week') {
+    document.getElementById('hFrom').value = weekStart(now).toISOString().slice(0,10);
+    document.getElementById('hTo').value   = weekEnd(now).toISOString().slice(0,10);
+  } else if (mode === 'month') {
+    document.getElementById('hFrom').value = monthStart(now).toISOString().slice(0,10);
+    document.getElementById('hTo').value   = monthEnd(now).toISOString().slice(0,10);
+  } else {
+    document.getElementById('hFrom').value = '';
+    document.getElementById('hTo').value   = '';
+  }
+  renderHistory();
+}
+
 // ─── History ───────────────────────────────────────────────
 function renderHistory() {
-  const entries = load().sort((a,b) => new Date(b.date) - new Date(a.date));
+  const hFrom = document.getElementById('hFrom').value;
+  const hTo   = document.getElementById('hTo').value;
+
+  let entries = load().sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  if (hFrom || hTo) {
+    const start = hFrom ? new Date(hFrom + 'T00:00:00') : new Date(0);
+    const end   = hTo   ? new Date(hTo   + 'T23:59:59') : new Date(9999,0,1);
+    entries = entries.filter(e => inRange(e.date, start, end));
+  }
+
+  const titleEl = document.getElementById('historyTitle');
+  if (titleEl) {
+    if (hFrom && hTo)   titleEl.textContent = fDate(hFrom) + ' – ' + fDate(hTo);
+    else if (hFrom)     titleEl.textContent = 'From ' + fDate(hFrom);
+    else if (hTo)       titleEl.textContent = 'Until ' + fDate(hTo);
+    else                titleEl.textContent = 'All Entries';
+  }
   const list    = document.getElementById('historyList');
   const empty   = document.getElementById('historyEmpty');
   if (!entries.length) { list.innerHTML = ''; empty.style.display = 'block'; updateSelectionUI(); return; }

@@ -350,6 +350,25 @@
 
     <!-- ══ TAB: HISTORY ══ -->
     <div id="tab-history" class="tab">
+      <!-- Date filter -->
+      <div class="card" style="margin-bottom:10px;padding:12px 14px;">
+        <div class="grid2" style="margin-bottom:10px;">
+          <div>
+            <label class="label-sm">From</label>
+            <input type="date" id="hFrom" onchange="renderHistory()">
+          </div>
+          <div>
+            <label class="label-sm">To</label>
+            <input type="date" id="hTo" onchange="renderHistory()">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="setHistoryRange('week')"  class="btn-sm" style="flex:1;font-size:12px;">This Week</button>
+          <button onclick="setHistoryRange('month')" class="btn-sm" style="flex:1;font-size:12px;">This Month</button>
+          <button onclick="setHistoryRange('all')"   class="btn-sm" style="flex:1;font-size:12px;">All</button>
+        </div>
+      </div>
+
       <!-- Top action bar -->
       <div style="margin-bottom:14px;">
         <!-- Summarize row — visible when items selected -->
@@ -363,10 +382,10 @@
             📋 Summarize <span id="summarizeCount">0</span> Selected Jobs
           </button>
         </div>
-        <!-- Always-visible controls row -->
+        <!-- Controls row -->
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <div style="font-size:17px;font-weight:700;">All Entries</div>
+            <div style="font-size:17px;font-weight:700;" id="historyTitle">All Entries</div>
             <button id="selectAllBtn" onclick="toggleSelectAll()"
               class="btn-sm" style="font-size:11px;padding:5px 10px;">Select All</button>
           </div>
