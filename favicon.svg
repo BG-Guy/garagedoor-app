@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#060c1c"/>
+      <stop offset="100%" stop-color="#0e1f47"/>
+    </linearGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c95c0a"/>
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="180" height="180" fill="url(#bg)" rx="22"/>
+  <!-- Door panels -->
+  <rect x="25" y="28" width="130" height="96" fill="#e9eef8" rx="2"/>
+  <!-- Panel separators (horizontal) -->
+  <line x1="25" y1="52"  x2="155" y2="52"  stroke="#aab4cc" stroke-width="2"/>
+  <line x1="25" y1="76"  x2="155" y2="76"  stroke="#aab4cc" stroke-width="2"/>
+  <line x1="25" y1="100" x2="155" y2="100" stroke="#aab4cc" stroke-width="2"/>
+  <!-- Panel separators (vertical) -->
+  <line x1="68"  y1="28" x2="68"  y2="124" stroke="#aab4cc" stroke-width="1.5"/>
+  <line x1="112" y1="28" x2="112" y2="124" stroke="#aab4cc" stroke-width="1.5"/>
+  <!-- Door border -->
+  <rect x="25" y="28" width="130" height="96" fill="none" stroke="#c8cfdf" stroke-width="2" rx="2"/>
+  <!-- Orange accent bar -->
+  <rect x="25" y="135" width="130" height="16" fill="url(#bar)" rx="3"/>
+  <!-- Handle -->
+  <circle cx="90" cy="120" r="9" fill="#f97316"/>
+  <circle cx="90" cy="120" r="5" fill="white"/>
+  <!-- Wrench (top-right) -->
+  <circle cx="141" cy="22" r="13" fill="none" stroke="#f97316" stroke-width="6"/>
+  <rect x="122" y="29" width="7" height="22" rx="3" fill="#f97316" transform="rotate(-45 122 29)"/>
+</svg>
