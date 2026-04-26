@@ -437,6 +437,126 @@ function toggleSelectAll() {
   renderHistory();
 }
 
+// ─── Calendar view ─────────────────────────────────────────
+let calView  = false;
+let calYear  = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let calSelDate = null;
+
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+const DAY_HDRS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+function toggleCalendarView() {
+  calView = !calView;
+  document.getElementById('calToggleBtn').textContent   = calView ? '📋 List' : '🗓 Calendar';
+  document.getElementById('historyDateFilter').style.display = calView ? 'none' : 'block';
+  document.getElementById('historyList').style.display        = calView ? 'none' : 'block';
+  document.getElementById('historyEmpty').style.display       = 'none';
+  document.getElementById('calendarView').style.display       = calView ? 'block' : 'none';
+
+  if (calView) {
+    calYear  = new Date().getFullYear();
+    calMonth = new Date().getMonth();
+    calSelDate = null;
+    renderCalendar();
+  } else {
+    renderHistory();
+  }
+}
+
+function calNav(dir) {
+  calMonth += dir;
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0;  calYear++; }
+  calSelDate = null;
+  renderCalendar();
+}
+
+function selectCalDay(dateStr) {
+  calSelDate = calSelDate === dateStr ? null : dateStr;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const entries = load();
+  const dayMap  = {};
+  entries.forEach(e => { (dayMap[e.date] = dayMap[e.date] || []).push(e); });
+
+  const today    = new Date().toISOString().slice(0,10);
+  const firstDow = (() => { let d = new Date(calYear, calMonth, 1).getDay() - 1; return d < 0 ? 6 : d; })();
+  const daysInMo = new Date(calYear, calMonth + 1, 0).getDate();
+  const prevLast = new Date(calYear, calMonth, 0).getDate();
+
+  const cells = [];
+  for (let i = firstDow - 1; i >= 0; i--)    cells.push({ day: prevLast - i, mine: false });
+  for (let d = 1; d <= daysInMo; d++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    cells.push({ day: d, mine: true, ds });
+  }
+  const rem = (7 - cells.length % 7) % 7;
+  for (let i = 1; i <= rem; i++) cells.push({ day: i, mine: false });
+
+  const calHtml = `
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <button onclick="calNav(-1)" style="background:rgba(255,255,255,0.08);border:none;color:#fff;
+          width:36px;height:36px;border-radius:10px;font-size:20px;cursor:pointer;line-height:1;">‹</button>
+        <div style="font-size:17px;font-weight:800;">${MONTH_NAMES[calMonth]} ${calYear}</div>
+        <button onclick="calNav(1)"  style="background:rgba(255,255,255,0.08);border:none;color:#fff;
+          width:36px;height:36px;border-radius:10px;font-size:20px;cursor:pointer;line-height:1;">›</button>
+      </div>
+      <div class="cal-grid" style="margin-bottom:4px;">
+        ${DAY_HDRS.map(d => `<div class="cal-hdr">${d}</div>`).join('')}
+      </div>
+      <div class="cal-grid">
+        ${cells.map(c => {
+          if (!c.mine) return `<div class="cal-day other-month">${c.day}</div>`;
+          const jobs    = dayMap[c.ds] || [];
+          const isToday = c.ds === today;
+          const isSel   = c.ds === calSelDate;
+          const hasJobs = jobs.length > 0;
+          const cls = ['cal-day', hasJobs?'has-jobs':'', isToday?'today':'', isSel?'selected':''].filter(Boolean).join(' ');
+          return `<div class="${cls}" onclick="selectCalDay('${c.ds}')">
+            <span>${c.day}</span>
+            ${hasJobs ? `<span class="cal-dot">${jobs.length > 1 ? jobs.length : '●'}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  const dayJobsHtml = calSelDate && dayMap[calSelDate]
+    ? `<div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.5);
+          margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">
+         ${fDate(calSelDate)} — ${dayMap[calSelDate].length} job${dayMap[calSelDate].length>1?'s':''}
+       </div>` +
+      dayMap[calSelDate].map(e => {
+        const commission = ((+e.totalPrice||0) - (+e.totalParts||0)) * 0.30;
+        const badges = [];
+        if (e.paidCC    > 0) badges.push(`<span class="badge" style="background:rgba(147,197,253,0.15);color:#93c5fd;">💳 ${f0(e.paidCC)}</span>`);
+        if (e.paidCheck > 0) badges.push(`<span class="badge" style="background:rgba(253,224,71,0.15);color:#fde047;">📝 ${f0(e.paidCheck)}</span>`);
+        if (e.paidCash  > 0) badges.push(`<span class="badge" style="background:rgba(74,222,128,0.15);color:#4ade80;">💵 ${f0(e.paidCash)}</span>`);
+        return `
+          <div class="entry-item" style="cursor:default;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;padding-right:8px;">
+              <div style="font-size:15px;font-weight:700;">${e.description || 'Job Entry'}</div>
+              <div style="text-align:right;flex-shrink:0;margin-left:12px;">
+                <div style="font-size:20px;font-weight:800;color:#f97316;">${f0(e.totalPrice)}</div>
+                <div style="font-size:12px;font-weight:600;color:#4ade80;">Commission: ${f0(commission)}</div>
+              </div>
+            </div>
+            ${badges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">${badges.join('')}</div>` : ''}
+            ${e.totalParts > 0 ? `<div style="font-size:12px;color:#f87171;margin-bottom:4px;">Parts: ${f0(e.totalParts)}</div>` : ''}
+            <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+              <button class="btn-sm" onclick="editJob('${e.id}')">Edit</button>
+            </div>
+          </div>`;
+      }).join('')
+    : '';
+
+  document.getElementById('calendarView').innerHTML = calHtml + dayJobsHtml;
+}
+
 // ─── History date filter ───────────────────────────────────
 function setHistoryRange(mode) {
   const now = new Date();

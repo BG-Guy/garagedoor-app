@@ -350,8 +350,8 @@
 
     <!-- ══ TAB: HISTORY ══ -->
     <div id="tab-history" class="tab">
-      <!-- Date filter -->
-      <div class="card" style="margin-bottom:10px;padding:12px 14px;">
+      <!-- Date filter (list mode only) -->
+      <div id="historyDateFilter" class="card" style="margin-bottom:10px;padding:12px 14px;">
         <div class="grid2" style="margin-bottom:10px;">
           <div>
             <label class="label-sm">From</label>
@@ -384,17 +384,21 @@
         </div>
         <!-- Controls row -->
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="display:flex;align-items:center;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;">
             <div style="font-size:17px;font-weight:700;" id="historyTitle">All Entries</div>
             <button id="selectAllBtn" onclick="toggleSelectAll()"
               class="btn-sm" style="font-size:11px;padding:5px 10px;">Select All</button>
           </div>
           <div style="display:flex;gap:8px;">
+            <button id="calToggleBtn" class="btn-sm" onclick="toggleCalendarView()" style="font-size:13px;">🗓 Calendar</button>
             <button class="btn-sm" onclick="exportCSV()">CSV</button>
             <button class="btn-sm danger" onclick="confirmClearAll()">Clear</button>
           </div>
         </div>
       </div>
+      <!-- Calendar view (toggled) -->
+      <div id="calendarView" style="display:none;"></div>
+
       <div id="historyList"></div>
       <div id="historyEmpty" style="display:none; text-align:center; padding:60px 20px;">
         <div style="font-size:52px; margin-bottom:14px;">🗂️</div>
