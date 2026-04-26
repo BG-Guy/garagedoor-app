@@ -108,28 +108,53 @@
     <!-- ══ TAB: NEW ENTRY ══ -->
     <div id="tab-new" class="tab active">
 
-      <!-- Week Snapshot -->
-      <div class="card-orange">
+      <!-- Week Snapshot (full screen height) -->
+      <div class="card-orange" style="
+          min-height: calc(100dvh - 130px);
+          display: flex; flex-direction: column; justify-content: space-between;
+          margin-bottom: 14px;">
+
         <div class="slabel">📅 This Week at a Glance</div>
-        <div class="grid2" style="margin-bottom:14px;">
-          <div>
-            <div class="label-sm" style="color:rgba(255,255,255,0.45);">Revenue</div>
-            <div class="bignum" id="wRevenue">$0</div>
+
+        <!-- Revenue + Commission -->
+        <div>
+          <div class="label-sm" style="color:rgba(255,255,255,0.45);">Revenue</div>
+          <div style="font-size:40px;font-weight:800;letter-spacing:-1px;line-height:1;" id="wRevenue">$0</div>
+        </div>
+        <div>
+          <div class="label-sm" style="color:rgba(255,255,255,0.45);">Commission (30%)</div>
+          <div style="font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1;color:#f97316;" id="wCommission">$0</div>
+        </div>
+
+        <hr class="sep">
+
+        <!-- Jobs · AVG · Highest -->
+        <div class="grid3">
+          <div class="mini-metric">
+            <div class="mm-val orange" id="wJobs">0</div>
+            <div class="mm-lbl">Jobs</div>
           </div>
-          <div>
-            <div class="label-sm" style="color:rgba(255,255,255,0.45);">Profit</div>
-            <div class="bignum green" id="wProfit">$0</div>
+          <div class="mini-metric">
+            <div class="mm-val" id="wAvg">$0</div>
+            <div class="mm-lbl">AVG Ticket</div>
           </div>
-          <div>
-            <div class="label-sm" style="color:rgba(255,255,255,0.45);">Jobs</div>
-            <div class="bignum orange" id="wJobs">0</div>
-          </div>
-          <div>
-            <div class="label-sm" style="color:rgba(255,255,255,0.45);">Parts</div>
-            <div class="bignum red" id="wParts">$0</div>
+          <div class="mini-metric">
+            <div class="mm-val" id="wHighest">$0</div>
+            <div class="mm-lbl">Highest</div>
           </div>
         </div>
-        <hr class="sep" style="margin:0 0 12px;">
+
+        <hr class="sep">
+
+        <!-- Parts -->
+        <div>
+          <div class="label-sm" style="color:rgba(255,255,255,0.45);">Parts Cost</div>
+          <div class="bignum red" id="wParts">$0</div>
+        </div>
+
+        <hr class="sep">
+
+        <!-- Payment methods -->
         <div class="grid3">
           <div class="mini-metric">
             <div class="mm-val blue" id="wCC">$0</div>
@@ -144,6 +169,21 @@
             <div class="mm-lbl">💵 Cash</div>
           </div>
         </div>
+
+        <hr class="sep">
+
+        <!-- Company balance -->
+        <div class="grid2">
+          <div>
+            <div class="label-sm green">Co. Owes Me</div>
+            <div class="bignum green" id="wCompanyOwes">$0</div>
+          </div>
+          <div>
+            <div class="label-sm red">I Owe Co.</div>
+            <div class="bignum red" id="wIOwe">$0</div>
+          </div>
+        </div>
+
       </div>
 
       <!-- Paste & Parse -->
