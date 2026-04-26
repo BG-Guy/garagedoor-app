@@ -151,6 +151,8 @@ document.getElementById('entryForm').addEventListener('submit', function(e) {
     document.getElementById(id).value = ''
   );
   document.getElementById('entryDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('parseInput').value = '';
+  document.getElementById('parsePills').innerHTML = '';
   recalcPaySum();
   updateBanner();
   toast('✓ Job entry saved!');
