@@ -52,11 +52,11 @@ function agg(entries) {
     return acc;
   }, {revenue:0, cc:0, check:0, cash:0, parts:0, tip:0, jobs:0});
 
-  const myDue         = a.revenue * 0.30 + a.parts;
+  a.myCommission      = (a.revenue - a.parts) * 0.30;
+  const myDue         = a.myCommission + a.parts;
   const iCollected    = a.check + a.cash;
   a.iOweCompany       = Math.max(0, iCollected - myDue);
   a.companyOwesMe     = Math.max(0, myDue - iCollected);
-  a.myCommission      = a.revenue * 0.30;
   return a;
 }
 
@@ -97,7 +97,7 @@ function updateBanner() {
   const avg     = w.jobs > 0 ? w.revenue / w.jobs : 0;
 
   document.getElementById('wRevenue').textContent    = f0(w.revenue);
-  document.getElementById('wCommission').textContent = f0(w.revenue * 0.30);
+  document.getElementById('wCommission').textContent = f0((w.revenue - w.parts) * 0.30);
   document.getElementById('wJobs').textContent       = w.jobs;
   document.getElementById('wAvg').textContent        = f0(avg);
   document.getElementById('wHighest').textContent    = f0(highest);
@@ -356,8 +356,8 @@ function periodStats(a) {
 }
 
 function compareHtml(cur, prev, curL, prevL) {
-  const curComm  = cur.revenue  * 0.30 - cur.parts;
-  const prevComm = prev.revenue * 0.30 - prev.parts;
+  const curComm  = (cur.revenue  - cur.parts)  * 0.30;
+  const prevComm = (prev.revenue - prev.parts) * 0.30;
   const curAvg   = cur.jobs  > 0 ? cur.revenue  / cur.jobs  : 0;
   const prevAvg  = prev.jobs > 0 ? prev.revenue / prev.jobs : 0;
 
@@ -447,7 +447,7 @@ function renderHistory() {
 
   list.innerHTML = entries.map(e => {
     const sel        = selectedIds.has(e.id);
-    const commission = (+e.totalPrice||0) * 0.30;
+    const commission = ((+e.totalPrice||0) - (+e.totalParts||0)) * 0.30;
     const badges     = [];
     if (e.paidCC    > 0) badges.push(`<span class="badge" style="background:rgba(147,197,253,0.15);color:#93c5fd;">💳 ${f0(e.paidCC)}</span>`);
     if (e.paidCheck > 0) badges.push(`<span class="badge" style="background:rgba(253,224,71,0.15);color:#fde047;">📝 ${f0(e.paidCheck)}</span>`);
@@ -479,7 +479,7 @@ function renderHistory() {
         ${badges.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${badges.join('')}</div>` : ''}
         ${e.totalParts > 0 ? `<div style="font-size:12px;color:#f87171;margin-bottom:6px;">Parts: ${f0(e.totalParts)}</div>` : ''}
         ${(() => {
-          const myDue  = (+e.totalPrice||0) * 0.30 + (+e.totalParts||0);
+          const myDue  = ((+e.totalPrice||0) - (+e.totalParts||0)) * 0.30 + (+e.totalParts||0);
           const iGot   = (+e.paidCheck||0) + (+e.paidCash||0);
           const iOweCo = Math.max(0, iGot - myDue);
           const coOwes = Math.max(0, myDue - iGot);
@@ -524,7 +524,7 @@ function summarizeSelected() {
     return a;
   }, { price:0, parts:0, cc:0, cash:0, check:0, tip:0 });
 
-  const myDue   = t.price * 0.30 + t.parts;
+  const myDue   = (t.price - t.parts) * 0.30 + t.parts;
   const iGot    = t.check + t.cash;
   const iOwe    = Math.max(0, iGot - myDue);
   const coOwes  = Math.max(0, myDue - iGot);
@@ -588,13 +588,14 @@ function exportCSV() {
     const parts  = +e.totalParts||0;
     const check  = +e.paidCheck||0;
     const cash   = +e.paidCash||0;
-    const myDue  = price * 0.30 + parts;
+    const comm   = (price - parts) * 0.30;
+    const myDue  = comm + parts;
     const iGot   = check + cash;
     return [
       e.date,
       '"' + (e.description||'').replace(/"/g,'""') + '"',
       price, e.paidCC||0, check, cash, parts,
-      (price * 0.30).toFixed(2),
+      comm.toFixed(2),
       Math.max(0, myDue - iGot).toFixed(2),
       Math.max(0, iGot - myDue).toFixed(2),
     ];
