@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>GaragePro Tracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Critical tab rules inline so they always apply regardless of external CSS loading */
+    .tab { display: none !important; }
+    .tab.active { display: block !important; animation: fadeSlide 0.22s ease; }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════ HEADER ══════════════ -->
+  <header class="page-header">
+    <div style="max-width:480px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="
+          width:38px; height:38px; border-radius:12px;
+          background: linear-gradient(135deg,#f97316,#ea580c);
+          box-shadow: 0 0 18px rgba(249,115,22,0.45);
+          display:flex; align-items:center; justify-content:center;
+          font-size:20px;">🔧</div>
+        <div>
+          <div style="font-size:18px; font-weight:800; letter-spacing:-0.3px; line-height:1.1;">GaragePro</div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.38);">Business Tracker</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:11px; color:rgba(255,255,255,0.38);">Net Balance</div>
+        <div id="hdrBalance" style="font-size:17px; font-weight:800; color:#f97316;">$0</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════════════ MAIN ══════════════ -->
+  <div class="main">
+
+    <!-- ══ TAB: NEW ENTRY ══ -->
+    <div id="tab-new" class="tab active">
+
+      <!-- Week Snapshot -->
+      <div class="card-orange">
+        <div class="slabel">📅 This Week at a Glance</div>
+        <div class="grid2" style="margin-bottom:14px;">
+          <div>
+            <div class="label-sm" style="color:rgba(255,255,255,0.45);">Revenue</div>
+            <div class="bignum" id="wRevenue">$0</div>
+          </div>
+          <div>
+            <div class="label-sm" style="color:rgba(255,255,255,0.45);">Profit</div>
+            <div class="bignum green" id="wProfit">$0</div>
+          </div>
+          <div>
+            <div class="label-sm" style="color:rgba(255,255,255,0.45);">Jobs</div>
+            <div class="bignum orange" id="wJobs">0</div>
+          </div>
+          <div>
+            <div class="label-sm" style="color:rgba(255,255,255,0.45);">Parts</div>
+            <div class="bignum red" id="wParts">$0</div>
+          </div>
+        </div>
+        <hr class="sep" style="margin:0 0 12px;">
+        <div class="grid3">
+          <div class="mini-metric">
+            <div class="mm-val blue" id="wCC">$0</div>
+            <div class="mm-lbl">💳 CC</div>
+          </div>
+          <div class="mini-metric">
+            <div class="mm-val yellow" id="wCheck">$0</div>
+            <div class="mm-lbl">📝 Check</div>
+          </div>
+          <div class="mini-metric">
+            <div class="mm-val green" id="wCash">$0</div>
+            <div class="mm-lbl">💵 Cash</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <div class="card">
+        <div class="slabel">New Job Entry</div>
+        <form id="entryForm">
+
+          <div style="margin-bottom:14px;">
+            <label class="label-sm">Date</label>
+            <input type="date" id="entryDate" required>
+          </div>
+
+          <div style="margin-bottom:14px;">
+            <label class="label-sm">Job Description</label>
+            <textarea id="entryDesc" rows="2" placeholder="e.g. Spring replacement, panel repair…"></textarea>
+          </div>
+
+          <!-- Total Price -->
+          <div style="margin-bottom:14px;" class="input-price">
+            <label class="label-sm">Total Price</label>
+            <div class="input-wrap has-prefix">
+              <span class="prefix" style="color:rgba(249,115,22,0.7);">$</span>
+              <input type="number" id="totalPrice" min="0" step="0.01" placeholder="0.00" required>
+            </div>
+          </div>
+
+          <!-- Payment Breakdown -->
+          <div style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:14px; padding:14px; margin-bottom:14px;">
+            <div class="slabel" style="margin-bottom:10px;">How was this job paid?</div>
+
+            <div style="margin-bottom:10px;">
+              <label class="label-sm" style="color:#93c5fd;">💳 Paid by Credit Card</label>
+              <div class="input-wrap has-prefix">
+                <span class="prefix">$</span>
+                <input type="number" id="paidCC" min="0" step="0.01" placeholder="0.00">
+              </div>
+            </div>
+            <div style="margin-bottom:10px;">
+              <label class="label-sm" style="color:#fde047;">📝 Paid by Check</label>
+              <div class="input-wrap has-prefix">
+                <span class="prefix">$</span>
+                <input type="number" id="paidCheck" min="0" step="0.01" placeholder="0.00">
+              </div>
+            </div>
+            <div>
+              <label class="label-sm" style="color:#4ade80;">💵 Paid by Cash</label>
+              <div class="input-wrap has-prefix">
+                <span class="prefix">$</span>
+                <input type="number" id="paidCash" min="0" step="0.01" placeholder="0.00">
+              </div>
+            </div>
+
+            <div id="payValidMsg" style="font-size:12px; text-align:center; margin-top:10px; color:rgba(255,255,255,0.32);">
+              Payments sum: <span id="paySum">$0.00</span>
+            </div>
+          </div>
+
+          <!-- Parts -->
+          <div style="margin-bottom:14px;">
+            <label class="label-sm">Total Parts Cost</label>
+            <div class="input-wrap has-prefix">
+              <span class="prefix">$</span>
+              <input type="number" id="totalParts" min="0" step="0.01" placeholder="0.00">
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary">Save Job Entry ✓</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ══ TAB: DASHBOARD ══ -->
+    <div id="tab-dashboard" class="tab">
+
+      <!-- Weekly Report (copyable) — populated by JS -->
+      <div id="dWeekReport"></div>
+
+      <!-- Company Balance Card -->
+      <div class="card-blue">
+        <div class="slabel">Company Balance (Cumulative)</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <div>
+            <div class="label-sm green">Company Owes Me</div>
+            <div class="bignum green" id="dCompanyOwes">$0</div>
+          </div>
+          <div style="font-size:26px; color:rgba(255,255,255,0.18);">⇄</div>
+          <div style="text-align:right;">
+            <div class="label-sm red">I Owe Company</div>
+            <div class="bignum red" id="dIOwe">$0</div>
+          </div>
+        </div>
+        <hr class="sep" style="margin:0 0 12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:14px; color:rgba(255,255,255,0.55);">Net Balance:</span>
+          <span class="mednum" id="dNetBalance">$0</span>
+        </div>
+      </div>
+
+      <!-- Week vs Last Week -->
+      <div class="card">
+        <div class="slabel">This Week vs Last Week</div>
+        <div id="dWeekCompare"></div>
+      </div>
+
+      <!-- Month vs Last Month -->
+      <div class="card">
+        <div class="slabel">This Month vs Last Month</div>
+        <div id="dMonthCompare"></div>
+      </div>
+
+      <!-- Payment Methods -->
+      <div class="card">
+        <div class="slabel">Payment Methods — All Time</div>
+        <div id="dPayBreakdown"></div>
+      </div>
+
+      <!-- All-Time Stats -->
+      <div class="card">
+        <div class="slabel">All Time Stats</div>
+        <div id="dAllTime"></div>
+      </div>
+
+    </div>
+
+    <!-- ══ TAB: HISTORY ══ -->
+    <div id="tab-history" class="tab">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-size:17px; font-weight:700;">All Entries</div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-sm" onclick="exportCSV()">Export CSV</button>
+          <button class="btn-sm danger" onclick="confirmClearAll()">Clear All</button>
+        </div>
+      </div>
+      <div id="historyList"></div>
+      <div id="historyEmpty" style="display:none; text-align:center; padding:60px 20px;">
+        <div style="font-size:52px; margin-bottom:14px;">🗂️</div>
+        <div style="font-size:17px; font-weight:700; margin-bottom:6px;">No entries yet</div>
+        <div class="muted" style="font-size:14px;">Add your first job from the New Entry tab</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════ BOTTOM NAV ══════════════ -->
+  <nav class="bottom-nav">
+    <div class="nav-inner">
+      <button id="nav-new" class="nav-btn active" onclick="switchTab('new')">
+        <span class="ni">➕</span><span>New Entry</span>
+      </button>
+      <button id="nav-dashboard" class="nav-btn" onclick="switchTab('dashboard')">
+        <span class="ni">📊</span><span>Dashboard</span>
+      </button>
+      <button id="nav-history" class="nav-btn" onclick="switchTab('history')">
+        <span class="ni">📋</span><span>History</span>
+      </button>
+    </div>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
