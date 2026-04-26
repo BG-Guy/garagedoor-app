@@ -165,6 +165,7 @@ function resetForm() {
   document.getElementById('parseInput').value     = '';
   document.getElementById('parsePills').innerHTML = '';
   document.getElementById('submitBtn').textContent = 'Save Job Entry ✓';
+  lastRawNote = '';
   recalcPaySum();
 }
 
@@ -180,6 +181,7 @@ document.getElementById('entryForm').addEventListener('submit', function(e) {
     paidCash:    +document.getElementById('paidCash').value   || 0,
     totalParts:  +document.getElementById('totalParts').value || 0,
     tip:         +document.getElementById('entryTip').value   || 0,
+    rawNote:     lastRawNote || '',
   };
 
   if (editingId) {
@@ -473,6 +475,17 @@ function renderHistory() {
           if (iOweCo > 0) pts.push(`<span style="color:#f87171;">I owe co.: ${f0(iOweCo)}</span>`);
           return pts.length ? `<div style="font-size:12px;margin-bottom:6px;">${pts.join(' &nbsp;·&nbsp; ')}</div>` : '';
         })()}
+        ${e.rawNote ? `
+        <div style="margin-top:8px;">
+          <button onclick="event.stopPropagation();this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.textContent=this.textContent.includes('▼')?'📋 Original Note ▲':'📋 Original Note ▼';"
+            style="background:none;border:none;color:rgba(255,255,255,0.35);font-size:11px;font-weight:600;cursor:pointer;padding:0;">
+            📋 Original Note ▼
+          </button>
+          <pre style="display:none;margin-top:8px;font-family:-apple-system,BlinkMacSystemFont,monospace;
+            font-size:11px;line-height:1.7;color:rgba(255,255,255,0.55);
+            white-space:pre-wrap;background:rgba(0,0,0,0.2);
+            border-radius:8px;padding:10px;border:0;overflow-x:auto;">${e.rawNote.replace(/</g,'&lt;')}</pre>
+        </div>` : ''}
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
           <button class="btn-sm" onclick="event.stopPropagation();editJob('${e.id}')">Edit</button>
           <button class="btn-sm danger" onclick="event.stopPropagation();deleteOne('${e.id}')">Delete</button>
@@ -701,9 +714,12 @@ function normalPay(s) {
 }
 
 // ─── Parser → fills main entry form ───────────────────────
+let lastRawNote = '';
+
 function runParser() {
   const raw = document.getElementById('parseInput').value.trim();
   if (!raw) { toast('Paste a job note first', '#f97316'); return; }
+  lastRawNote = raw;
 
   const p = parseJobText(raw);
 
