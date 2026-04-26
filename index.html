@@ -382,18 +382,17 @@
             📋 Summarize <span id="summarizeCount">0</span> Selected Jobs
           </button>
         </div>
-        <!-- Controls row -->
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="font-size:17px;font-weight:700;" id="historyTitle">All Entries</div>
-            <button id="selectAllBtn" onclick="toggleSelectAll()"
-              class="btn-sm" style="font-size:11px;padding:5px 10px;">Select All</button>
-          </div>
-          <div style="display:flex;gap:8px;">
-            <button id="calToggleBtn" class="btn-sm" onclick="toggleCalendarView()" style="font-size:13px;">🗓 Calendar</button>
-            <button class="btn-sm" onclick="exportCSV()">CSV</button>
-            <button class="btn-sm danger" onclick="confirmClearAll()">Clear</button>
-          </div>
+        <!-- Row 1: title + calendar toggle -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div style="font-size:17px;font-weight:700;" id="historyTitle">All Entries</div>
+          <button id="calToggleBtn" class="btn-sm" onclick="toggleCalendarView()" style="font-size:13px;">🗓 Calendar</button>
+        </div>
+        <!-- Row 2: select + csv + clear -->
+        <div style="display:flex;gap:8px;">
+          <button id="selectAllBtn" onclick="toggleSelectAll()"
+            class="btn-sm" style="flex:1;font-size:12px;">Select All</button>
+          <button class="btn-sm" onclick="exportCSV()" style="flex:1;font-size:12px;">Export CSV</button>
+          <button class="btn-sm danger" onclick="confirmClearAll()" style="flex:1;font-size:12px;">Clear All</button>
         </div>
       </div>
       <!-- Calendar view (toggled) -->

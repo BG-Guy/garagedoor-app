@@ -447,20 +447,24 @@ const MONTH_NAMES = ['January','February','March','April','May','June',
                      'July','August','September','October','November','December'];
 const DAY_HDRS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 
-function toggleCalendarView() {
-  calView = !calView;
-  document.getElementById('calToggleBtn').textContent   = calView ? '📋 List' : '🗓 Calendar';
-  document.getElementById('historyDateFilter').style.display = calView ? 'none' : 'block';
-  document.getElementById('historyList').style.display        = calView ? 'none' : 'block';
-  document.getElementById('historyEmpty').style.display       = 'none';
-  document.getElementById('calendarView').style.display       = calView ? 'block' : 'none';
+function setCalView(on) {
+  calView = on;
+  document.getElementById('calToggleBtn').textContent              = on ? '📋 List' : '🗓 Calendar';
+  document.getElementById('historyDateFilter').style.display       = on ? 'none'  : 'block';
+  document.getElementById('historyList').style.display             = on ? 'none'  : 'block';
+  document.getElementById('historyEmpty').style.display            = 'none';
+  document.getElementById('calendarView').style.display            = on ? 'block' : 'none';
+}
 
-  if (calView) {
+function toggleCalendarView() {
+  if (!calView) {
     calYear  = new Date().getFullYear();
     calMonth = new Date().getMonth();
     calSelDate = null;
+    setCalView(true);
     renderCalendar();
   } else {
+    setCalView(false);
     renderHistory();
   }
 }
@@ -575,6 +579,8 @@ function setHistoryRange(mode) {
 
 // ─── History ───────────────────────────────────────────────
 function renderHistory() {
+  if (calView) { setCalView(true); renderCalendar(); return; }
+
   const hFrom = document.getElementById('hFrom').value;
   const hTo   = document.getElementById('hTo').value;
 
