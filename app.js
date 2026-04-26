@@ -76,7 +76,7 @@ function toast(msg, color = '#22c55e') {
 
 // ─── Tab switching ─────────────────────────────────────────
 function switchTab(t) {
-  ['new','dashboard','history'].forEach(id => {
+  ['new','parse','dashboard','history'].forEach(id => {
     document.getElementById('tab-' + id).classList.toggle('active', id === t);
     document.getElementById('nav-' + id).classList.toggle('active', id === t);
   });
@@ -408,6 +408,189 @@ function exportCSV() {
   });
   a.click(); URL.revokeObjectURL(a.href);
   toast('✓ CSV exported!');
+}
+
+// ─── Job Note Parser ───────────────────────────────────────
+function parseJobText(raw) {
+  const result = {
+    date:        new Date().toISOString().slice(0,10),
+    description: '',
+    totalPrice:  0,
+    paidCC:      0,
+    paidCheck:   0,
+    paidCash:    0,
+    totalParts:  0,
+    pills:       [],   // detected field labels shown in UI
+    payMethod:   '',
+  };
+
+  // Split into header (customer info) and job section (after separator)
+  const sepRx   = /[-—]{2,}|\*{3,}/;
+  const sections = raw.split(sepRx);
+  const header   = sections[0] || '';
+  const jobBlock = sections.slice(1).join('\n');
+
+  // ── Date ──────────────────────────────────────────────────
+  const dateRx = raw.match(/(?:appt|preferred date[^:]*)\s*:\s*(\d{1,2})\/(\d{1,2})/i);
+  if (dateRx) {
+    const yr = new Date().getFullYear();
+    result.date = `${yr}-${dateRx[1].padStart(2,'0')}-${dateRx[2].padStart(2,'0')}`;
+    result.pills.push({ label: `📅 ${dateRx[1]}/${dateRx[2]}`, ok: true });
+  }
+
+  // ── Description (from header fields) ──────────────────────
+  const occuM = header.match(/Occu\s*:\s*(.+)/i);
+  const descM = header.match(/Desc\s*:\s*(.+)/i);
+  const svcM  = header.match(/Service\s*:\s*(.+)/i);
+  const hDesc = (occuM || descM || svcM);
+  if (hDesc) result.description = hDesc[1].trim();
+
+  // Enrich description from Notes (take the most specific part)
+  const notesM = raw.match(/Notes\s*:\s*([\s\S]+?)(?=[—\-]{2,}|\*{3,}|$)/i);
+  if (notesM) {
+    const parts = notesM[1].split(/\/\/|\|/).map(s => s.trim()).filter(s => s.length > 8);
+    // Pick the most descriptive segment (not just "Residential")
+    const detail = parts.find(s => !/^residential$/i.test(s) && !/^call back/i.test(s) && !/warranty/i.test(s));
+    if (detail) {
+      result.description = result.description
+        ? result.description + ' — ' + detail.replace(/\n/g,' ')
+        : detail.replace(/\n/g,' ');
+    }
+  }
+
+  // ── Parse the job block line by line ──────────────────────
+  const lines = jobBlock.split('\n').map(l => l.trim()).filter(Boolean);
+  let priceDetected = false;
+
+  for (const line of lines) {
+
+    // "T price 1260 cc" or "T price: 1866.50"
+    const tpM = line.match(/t(?:otal)?\s*price\s*:?\s*\$?([\d,]+(?:\.\d+)?)(?:\s+(cc|credit\s*card|check|cash))?/i);
+    if (tpM) {
+      result.totalPrice  = parseFloat(tpM[1].replace(/,/g,''));
+      if (tpM[2]) result.payMethod = tpM[2].toLowerCase().replace('credit card','cc');
+      priceDetected = true;
+      result.pills.push({ label: `💰 $${result.totalPrice}`, ok: true });
+      continue;
+    }
+
+    // Inline "Inspection 60$ cc" — description + price + payment on one line
+    const inlineM = line.match(/^(.+?)\s+\$?([\d,]+(?:\.\d+)?)\s*\$?\s*(cc|credit\s*card|check|cash)\s*$/i);
+    if (inlineM && !priceDetected) {
+      result.totalPrice = parseFloat(inlineM[2].replace(/,/g,''));
+      result.payMethod  = inlineM[3].toLowerCase().replace('credit card','cc');
+      // Use inline description if more specific than header
+      const inlineDesc = inlineM[1].trim();
+      if (!result.description || /garage door repair/i.test(result.description)) {
+        result.description = inlineDesc;
+      }
+      priceDetected = true;
+      result.pills.push({ label: `💰 $${result.totalPrice}`, ok: true });
+      continue;
+    }
+
+    // "T parts 157$" or "T parts: 226"
+    const tparM = line.match(/t(?:otal)?\s*parts?\s*:?\s*\$?([\d,]+(?:\.\d+)?)/i);
+    if (tparM) {
+      result.totalParts = parseFloat(tparM[1].replace(/,/g,''));
+      result.pills.push({ label: `🔩 Parts $${result.totalParts}`, ok: true });
+      continue;
+    }
+
+    // Standalone payment line: "Check", "Cash", "CC"
+    if (/^\s*(cc|credit\s*card)\s*$/i.test(line)) { result.payMethod = 'cc';    continue; }
+    if (/^\s*check\s*$/i.test(line))               { result.payMethod = 'check'; continue; }
+    if (/^\s*cash\s*$/i.test(line))                { result.payMethod = 'cash';  continue; }
+
+    // First descriptive line in job block (e.g. "Opener replacement")
+    if (!priceDetected && !line.match(/^(parts?|tip|remotes?|keypad|\d)/i)) {
+      if (!result.description || /garage door repair/i.test(result.description)) {
+        result.description = line;
+      }
+    }
+  }
+
+  // ── Assign payment buckets ─────────────────────────────────
+  const pm = result.payMethod;
+  if (pm.includes('cc') || pm.includes('credit')) {
+    result.paidCC    = result.totalPrice;
+    result.pills.push({ label: '💳 CC', ok: true });
+  } else if (pm.includes('check')) {
+    result.paidCheck = result.totalPrice;
+    result.pills.push({ label: '📝 Check', ok: true });
+  } else if (pm.includes('cash')) {
+    result.paidCash  = result.totalPrice;
+    result.pills.push({ label: '💵 Cash', ok: true });
+  } else {
+    result.pills.push({ label: '⚠️ Payment unclear', ok: false });
+  }
+
+  if (!result.description) result.pills.push({ label: '⚠️ No description', ok: false });
+
+  return result;
+}
+
+function runParser() {
+  const raw = document.getElementById('parseInput').value.trim();
+  if (!raw) { toast('Paste a job note first', '#f97316'); return; }
+
+  const p = parseJobText(raw);
+
+  // Populate editable fields
+  document.getElementById('p_date').value  = p.date;
+  document.getElementById('p_desc').value  = p.description;
+  document.getElementById('p_price').value = p.totalPrice || '';
+  document.getElementById('p_parts').value = p.totalParts || '';
+
+  // Select payment radio
+  document.querySelectorAll('input[name="p_pay"]').forEach(r => {
+    r.checked = r.value === p.payMethod;
+  });
+
+  // Detection pills
+  document.getElementById('parsePills').innerHTML = p.pills.map(pl => `
+    <span style="
+      display:inline-flex; align-items:center;
+      padding:3px 10px; border-radius:50px; font-size:11px; font-weight:700;
+      background:${pl.ok ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)'};
+      border:1px solid ${pl.ok ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)'};
+      color:${pl.ok ? '#4ade80' : '#f87171'};
+    ">${pl.label}</span>`).join('');
+
+  document.getElementById('parseResult').style.display = 'block';
+  document.getElementById('parseResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearParser() {
+  document.getElementById('parseInput').value = '';
+  document.getElementById('parseResult').style.display = 'none';
+}
+
+function saveImportedJob() {
+  const price   = parseFloat(document.getElementById('p_price').value) || 0;
+  const pay     = document.querySelector('input[name="p_pay"]:checked');
+  const payVal  = pay ? pay.value : '';
+
+  const entry = {
+    id:          Date.now().toString(),
+    date:        document.getElementById('p_date').value,
+    description: document.getElementById('p_desc').value.trim(),
+    totalPrice:  price,
+    paidCC:      payVal === 'cc'    ? price : 0,
+    paidCheck:   payVal === 'check' ? price : 0,
+    paidCash:    payVal === 'cash'  ? price : 0,
+    totalParts:  parseFloat(document.getElementById('p_parts').value) || 0,
+  };
+
+  if (!entry.date || !entry.totalPrice) {
+    toast('Date and Total Price are required', '#f97316'); return;
+  }
+
+  addEntry(entry);
+  updateBanner();
+  clearParser();
+  toast('✓ Job entry saved!');
+  switchTab('new');
 }
 
 // ─── Install prompt (iOS only) ─────────────────────────────
