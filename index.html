@@ -296,21 +296,52 @@
     <!-- ══ TAB: PARSE ══ -->
     <div id="tab-parse" class="tab">
 
+      <!-- API Key -->
+      <div class="card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="slabel" style="margin:0;">🤖 OpenAI API Key</div>
+          <a href="https://platform.openai.com/api-keys" target="_blank"
+             style="font-size:11px;color:#f97316;text-decoration:none;">Get key ↗</a>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div style="flex:1;position:relative;">
+            <input type="password" id="apiKeyInput" placeholder="sk-…"
+                   style="padding-right:44px;"
+                   oninput="previewKey()">
+            <button onclick="toggleKeyVis()" id="keyVisBtn"
+              style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                     background:none;border:none;color:rgba(255,255,255,0.4);
+                     font-size:16px;cursor:pointer;padding:0;">👁</button>
+          </div>
+          <button onclick="saveApiKey()" class="btn-sm" style="padding:13px 16px;white-space:nowrap;">Save</button>
+        </div>
+        <div id="keyStatus" style="font-size:11px;margin-top:7px;color:rgba(255,255,255,0.35);"></div>
+      </div>
+
       <!-- Paste area -->
       <div class="card">
-        <div class="slabel">🔍 Smart Import — Paste Job Note</div>
-        <textarea id="parseInput" rows="9" placeholder="Paste the full job note here…
+        <div class="slabel">Paste Job Note</div>
+        <textarea id="parseInput" rows="8" placeholder="Paste the full job note here…
 
 Example:
-N: John Smith
-Occu: Spring Replacement
-Appt: 04/25
-—-
-T price 450 cc
-T parts 85$"></textarea>
-        <div style="display:flex; gap:10px; margin-top:12px;">
-          <button onclick="runParser()" class="btn-primary" style="flex:1;">🔍 Parse Job</button>
-          <button onclick="clearParser()" class="btn-sm" style="padding:14px 16px;">Clear</button>
+4038 Sunset Dr, Youngstown OH
+(479) 221-0824 - LORALEE OBRIEN
+Tuesday 4/21/26, 2-4PM
+
+***
+
+Opener and 3 rolls replacement
+T price: 1317.12$
+paid by: cc
+T parts - 230$"></textarea>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button onclick="runAIParser()" id="aiParseBtn" class="btn-primary" style="flex:2;">
+            🤖 Parse with AI
+          </button>
+          <button onclick="runParser()" class="btn-sm" style="flex:1;padding:14px 8px;font-size:12px;">
+            🔍 Regex
+          </button>
+          <button onclick="clearParser()" class="btn-sm" style="padding:14px 14px;">✕</button>
         </div>
       </div>
 

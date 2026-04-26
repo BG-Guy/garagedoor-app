@@ -518,35 +518,149 @@ function normalPay(s) {
   return '';
 }
 
-function runParser() {
+// ─── API Key helpers ───────────────────────────────────────
+function previewKey() {
+  const v = document.getElementById('apiKeyInput').value;
+  document.getElementById('keyStatus').textContent = v ? `Key entered (${v.length} chars) — tap Save` : '';
+}
+
+function toggleKeyVis() {
+  const inp = document.getElementById('apiKeyInput');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { toast('Enter a key first', '#f97316'); return; }
+  localStorage.setItem('gp_openai_key', key);
+  document.getElementById('keyStatus').textContent = '✓ Key saved on this device';
+  document.getElementById('keyStatus').style.color = '#4ade80';
+  toast('✓ API key saved!');
+}
+
+(function loadSavedKey() {
+  const saved = localStorage.getItem('gp_openai_key');
+  if (saved) {
+    document.getElementById('apiKeyInput').value = saved;
+    document.getElementById('keyStatus').textContent = `✓ Key saved (${saved.length} chars)`;
+    document.getElementById('keyStatus').style.color = '#4ade80';
+  }
+})();
+
+// ─── AI Parser (OpenAI) ────────────────────────────────────
+async function runAIParser() {
+  const apiKey = localStorage.getItem('gp_openai_key') || '';
+  if (!apiKey) {
+    toast('Save your OpenAI API key first', '#f97316');
+    document.getElementById('apiKeyInput').focus();
+    return;
+  }
+
   const raw = document.getElementById('parseInput').value.trim();
   if (!raw) { toast('Paste a job note first', '#f97316'); return; }
 
-  const p = parseJobText(raw);
+  const btn = document.getElementById('aiParseBtn');
+  btn.textContent = '⏳ Thinking…';
+  btn.disabled = true;
 
-  // Populate editable fields
-  document.getElementById('p_date').value  = p.date;
-  document.getElementById('p_desc').value  = p.description;
-  document.getElementById('p_price').value = p.totalPrice || '';
-  document.getElementById('p_parts').value = p.totalParts || '';
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        temperature: 0,
+        max_tokens: 300,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a data extractor for a garage door business. ' +
+              'Extract job details and return ONLY a JSON object with these exact keys: ' +
+              'description (string), date (YYYY-MM-DD or null), ' +
+              'totalPrice (number), paymentMethod ("cc"|"check"|"cash"|""), totalParts (number). ' +
+              'totalParts is the cost of parts used. paymentMethod: cc means credit card.',
+          },
+          {
+            role: 'user',
+            content: 'Extract job details from this note:\n\n' + raw,
+          },
+        ],
+      }),
+    });
 
-  // Select payment radio
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const parsed = JSON.parse(data.choices[0].message.content);
+
+    // Build pills from AI result
+    const pills = [];
+    if (parsed.date)          pills.push({ label: `📅 ${parsed.date}`,           ok: true  });
+    if (parsed.totalPrice)    pills.push({ label: `💰 $${parsed.totalPrice}`,     ok: true  });
+    if (parsed.totalParts)    pills.push({ label: `🔩 Parts $${parsed.totalParts}`, ok: true });
+    if (parsed.paymentMethod) pills.push({ label: payLabel(parsed.paymentMethod), ok: true  });
+    else                      pills.push({ label: '⚠️ Payment unclear',           ok: false });
+    pills.push({ label: '🤖 AI', ok: true });
+
+    fillParseResult({
+      date:        parsed.date || new Date().toISOString().slice(0,10),
+      description: parsed.description || '',
+      totalPrice:  parsed.totalPrice  || 0,
+      totalParts:  parsed.totalParts  || 0,
+      payMethod:   parsed.paymentMethod || '',
+      pills,
+    });
+
+  } catch (err) {
+    toast('AI error: ' + err.message, '#ef4444');
+  } finally {
+    btn.textContent = '🤖 Parse with AI';
+    btn.disabled = false;
+  }
+}
+
+function payLabel(pm) {
+  if (pm === 'cc')    return '💳 CC';
+  if (pm === 'check') return '📝 Check';
+  if (pm === 'cash')  return '💵 Cash';
+  return pm;
+}
+
+function runParser() {
+  const raw = document.getElementById('parseInput').value.trim();
+  if (!raw) { toast('Paste a job note first', '#f97316'); return; }
+  fillParseResult(parseJobText(raw));
+}
+
+function fillParseResult(p) {
+  document.getElementById('p_date').value  = p.date  || new Date().toISOString().slice(0,10);
+  document.getElementById('p_desc').value  = p.description || '';
+  document.getElementById('p_price').value = p.totalPrice  || '';
+  document.getElementById('p_parts').value = p.totalParts  || '';
+
   document.querySelectorAll('input[name="p_pay"]').forEach(r => {
-    r.checked = r.value === p.payMethod;
+    r.checked = r.value === (p.payMethod || '');
   });
 
-  // Detection pills
-  document.getElementById('parsePills').innerHTML = p.pills.map(pl => `
+  document.getElementById('parsePills').innerHTML = (p.pills || []).map(pl => `
     <span style="
-      display:inline-flex; align-items:center;
-      padding:3px 10px; border-radius:50px; font-size:11px; font-weight:700;
+      display:inline-flex;align-items:center;
+      padding:3px 10px;border-radius:50px;font-size:11px;font-weight:700;
       background:${pl.ok ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)'};
       border:1px solid ${pl.ok ? 'rgba(74,222,128,0.35)' : 'rgba(248,113,113,0.35)'};
       color:${pl.ok ? '#4ade80' : '#f87171'};
     ">${pl.label}</span>`).join('');
 
   document.getElementById('parseResult').style.display = 'block';
-  document.getElementById('parseResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document.getElementById('parseResult').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 function clearParser() {
