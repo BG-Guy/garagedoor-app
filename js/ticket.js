@@ -29,7 +29,7 @@ function generateTicketText() {
       const counts = {};
       partsRows.filter(r => r.label).forEach(r => {
         const clean = r.label.replace(/[^\x00-\x7F]/g, '').trim().toLowerCase();
-        if (clean) counts[clean] = (counts[clean] || 0) + 1;
+        if (clean) counts[clean] = (counts[clean] || 0) + (r.qty || 1);
       });
       const partStr = Object.entries(counts)
         .map(([name, n]) => n > 1 ? n + ' ' + name : name).join(', ');
