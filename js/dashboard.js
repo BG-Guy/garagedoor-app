@@ -134,8 +134,8 @@ function periodStats(a) {
 }
 
 function compareHtml(cur, prev, curL, prevL) {
-  const curComm  = (cur.revenue  - cur.parts)  * 0.30;
-  const prevComm = (prev.revenue - prev.parts) * 0.30;
+  const curComm  = cur.myCommission;
+  const prevComm = prev.myCommission;
   const curAvg   = cur.jobs  > 0 ? cur.revenue  / cur.jobs  : 0;
   const prevAvg  = prev.jobs > 0 ? prev.revenue / prev.jobs : 0;
   const items = [

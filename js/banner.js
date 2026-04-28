@@ -8,7 +8,7 @@ function updateBanner() {
   const avg     = w.jobs > 0 ? w.revenue / w.jobs : 0;
 
   document.getElementById('wRevenue').textContent     = f0(w.revenue);
-  document.getElementById('wCommission').textContent  = f0((w.revenue - w.parts) * 0.30);
+  document.getElementById('wCommission').textContent  = f0(w.myCommission);
   document.getElementById('wJobs').textContent        = w.jobs;
   document.getElementById('wAvg').textContent         = f0(avg);
   document.getElementById('wHighest').textContent     = f0(highest);

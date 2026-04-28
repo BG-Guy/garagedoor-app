@@ -191,17 +191,20 @@ function renderHistory() {
   empty.style.display = 'none';
 
   list.innerHTML = entries.map(e => {
-    const sel  = selectedIds.has(e.id);
-    const comm = ((+e.totalPrice||0)-(+e.totalParts||0))*0.30;
+    const sel    = selectedIds.has(e.id);
+    // Settlement formula (matches business.js)
+    const cc     = +e.paidCC     || 0;
+    const parts  = +e.totalParts || 0;
+    const net    = (+e.totalPrice || 0) - cc * 0.04;   // deduct 4% CC fee
+    const comm   = (net - parts) * 0.30;
+    const tipCC  = cc > 0 ? (+e.tip || 0) : 0;
+    const myDue  = comm + parts + tipCC;
+    const iGot   = (+e.paidCheck||0) + (+e.paidCash||0);
     const badges = [];
     if (e.paidCC>0)    badges.push(`<span class="badge" style="background:rgba(147,197,253,0.15);color:#93c5fd;">💳 ${f0(e.paidCC)}</span>`);
     if (e.paidCheck>0) badges.push(`<span class="badge" style="background:rgba(253,224,71,0.15);color:#fde047;">📝 ${f0(e.paidCheck)}</span>`);
     if (e.paidCash>0)  badges.push(`<span class="badge" style="background:rgba(74,222,128,0.15);color:#4ade80;">💵 ${f0(e.paidCash)}</span>`);
     if ((+e.tip||0)>0) badges.push(`<span class="badge" style="background:rgba(74,222,128,0.12);color:#86efac;">🎁 Tip ${f0(e.tip)}</span>`);
-
-    const tipCC  = (+e.paidCC > 0) ? (+e.tip || 0) : 0;
-    const myDue  = comm + (+e.totalParts||0) + tipCC;
-    const iGot   = (+e.paidCheck||0) + (+e.paidCash||0);
     const iOwe   = Math.max(0, iGot - myDue);
     const coOwes = Math.max(0, myDue - iGot);
     const settle = [];
@@ -277,12 +280,15 @@ function summarizeSelected() {
   const entries = load().filter(e => selectedIds.has(e.id));
   if (!entries.length) { toast('Select at least one job', '#f97316'); return; }
   const t = entries.reduce((a,e) => {
-    a.price+=+e.totalPrice||0; a.parts+=+e.totalParts||0; a.cc+=+e.paidCC||0;
-    a.cash+=+e.paidCash||0; a.check+=+e.paidCheck||0; a.tip+=+e.tip||0;
-    a.ccTip += (+e.paidCC > 0) ? (+e.tip || 0) : 0;
+    const cc = +e.paidCC || 0;
+    a.price += +e.totalPrice || 0; a.parts += +e.totalParts || 0;
+    a.cc    += cc; a.cash += +e.paidCash||0; a.check += +e.paidCheck||0; a.tip += +e.tip||0;
+    a.ccFee += cc * 0.04;
+    a.ccTip += cc > 0 ? (+e.tip || 0) : 0;
     return a;
-  }, {price:0,parts:0,cc:0,cash:0,check:0,tip:0,ccTip:0});
-  const myDue  = (t.price-t.parts)*0.30 + t.parts + t.ccTip;
+  }, {price:0,parts:0,cc:0,cash:0,check:0,tip:0,ccFee:0,ccTip:0});
+  const net    = t.price - t.ccFee;
+  const myDue  = (net - t.parts) * 0.30 + t.parts + t.ccTip;
   const iGot   = t.check + t.cash;
   const text   = [
     `T jobs:          ${entries.length}`,
@@ -344,7 +350,7 @@ function exportCSV() {
   const hdr  = ['Date','Description','Total Price','Paid CC','Paid Check','Paid Cash','Total Parts','My Commission (30%)','Company Owes Me','I Owe Company'];
   const rows = entries.map(e => {
     const price=+e.totalPrice||0, parts=+e.totalParts||0, check=+e.paidCheck||0, cash=+e.paidCash||0;
-    const comm=((price-parts)*0.30), tipCC=(+e.paidCC>0?(+e.tip||0):0), myDue=comm+parts+tipCC, iGot=check+cash;
+    const ccFee=cc*0.04, net=price-ccFee, comm=(net-parts)*0.30, tipCC=(cc>0?(+e.tip||0):0), myDue=comm+parts+tipCC, iGot=check+cash;
     return [e.date,'"'+(e.description||'').replace(/"/g,'""')+'"',price,e.paidCC||0,check,cash,parts,
       comm.toFixed(2), Math.max(0,myDue-iGot).toFixed(2), Math.max(0,iGot-myDue).toFixed(2)];
   });

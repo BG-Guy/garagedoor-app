@@ -10,8 +10,10 @@ function generateTicketText() {
   // Always read directly from the paste box — works even without clicking Fill
   const rawNote = document.getElementById('parseInput').value.trim() || lastRawNote;
 
-  const ft    = n => Math.round(n || 0) + '$';
-  const lines = [];
+  const ccFee    = cc * 0.04;
+  const netPrice = price - ccFee;   // 4% CC fee deducted
+  const ft       = n => Math.round(n || 0) + '$';
+  const lines    = [];
 
   if (rawNote) {
     lines.push(rawNote);
@@ -21,7 +23,7 @@ function generateTicketText() {
   lines.push('-------');
   lines.push('');
   if (desc) lines.push(desc);
-  lines.push('T price: ' + ft(price));
+  lines.push('T price: ' + ft(netPrice));
 
   if (parts > 0) {
     let partsLine = 'T parts: ' + ft(parts);
