@@ -1,8 +1,9 @@
 // Business rules:
 //   Cash & Check go directly to me from the customer.
 //   CC goes to the company.
-//   My commission = (revenue - parts) × 30%.
-//   My due        = commission + parts reimbursement.
+//   I pay for parts out of my own pocket — company does NOT reimburse parts.
+//   My commission = (revenue - parts) × 30%  (parts reduce the commission base).
+//   My due        = commission only.
 //   iOweCompany   = max(0, cash+check collected - my due).
 //   companyOwesMe = max(0, my due - cash+check collected).
 function agg(entries) {
@@ -18,7 +19,7 @@ function agg(entries) {
   }, { revenue:0, cc:0, check:0, cash:0, parts:0, tip:0, jobs:0 });
 
   a.myCommission  = (a.revenue - a.parts) * 0.30;
-  const myDue     = a.myCommission + a.parts;
+  const myDue     = a.myCommission;           // parts are my own expense
   const iGot      = a.check + a.cash;
   a.iOweCompany   = Math.max(0, iGot - myDue);
   a.companyOwesMe = Math.max(0, myDue - iGot);
