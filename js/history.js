@@ -196,10 +196,14 @@ function renderHistory() {
     if (iOwe   > 0) settle.push(`<span style="color:#f87171;">I owe co.: ${f0(iOwe)}</span>`);
 
     return `
-      <div class="entry-item${sel?' selected':''}" data-id="${e.id}" onclick="toggleSelect('${e.id}')">
+      <div class="entry-item${sel?' selected':''}${e.disputed?' disputed':''}" data-id="${e.id}" onclick="toggleSelect('${e.id}')">
         <div id="chk_${e.id}" style="position:absolute;top:14px;right:14px;width:22px;height:22px;border-radius:50%;
             border:2px solid ${sel?'#f97316':'rgba(255,255,255,0.25)'};background:${sel?'#f97316':'transparent'};
             display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;">${sel?'✓':''}</div>
+        ${e.disputed?`<div style="display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;
+            background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);
+            font-size:11px;font-weight:700;color:#f87171;margin-bottom:8px;">
+            ⚠️ DISPUTED — excluded from balance</div>`:''}
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;padding-right:32px;">
           <div>
             <div style="font-size:12px;color:rgba(255,255,255,0.38);">${fDate(e.date)}</div>
@@ -230,8 +234,11 @@ function renderHistory() {
           <pre style="display:none;margin-top:8px;font-family:-apple-system,BlinkMacSystemFont,monospace;font-size:11px;line-height:1.7;color:rgba(255,255,255,0.5);
             white-space:pre-wrap;background:rgba(0,0,0,0.2);border-radius:8px;padding:10px;border:0;">${e.rawNote.replace(/</g,'&lt;')}</pre>
         </div>`:''}
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;flex-wrap:wrap;">
           ${e.rawNote?`<button class="btn-sm" onclick="event.stopPropagation();copyNote('${e.id}')">📋 Copy Note</button>`:''}
+          <button class="btn-sm${e.disputed?' danger':''}" onclick="event.stopPropagation();toggleDisputed('${e.id}')" style="${e.disputed?'':'color:rgba(255,255,255,0.45);'}">
+            ${e.disputed?'✓ Disputed':'⚠️ Dispute'}
+          </button>
           <button class="btn-sm" onclick="event.stopPropagation();editJob('${e.id}')">Edit</button>
           <button class="btn-sm danger" onclick="event.stopPropagation();deleteOne('${e.id}')">Delete</button>
         </div>
@@ -291,6 +298,17 @@ function copySummaryText() {
 
 function deleteOne(id) {
   if (confirm('Delete this entry?')) { removeEntry(id); updateBanner(); renderHistory(); toast('Entry deleted','#ef4444'); }
+}
+
+function toggleDisputed(id) {
+  const entries = load();
+  const entry   = entries.find(e => e.id === id);
+  if (!entry) return;
+  entry.disputed = !entry.disputed;
+  save(entries);
+  updateBanner();
+  renderHistory();
+  toast(entry.disputed ? '⚠️ Marked as disputed' : '✓ Dispute removed', entry.disputed ? '#f87171' : '#22c55e');
 }
 
 function copyNote(id) {

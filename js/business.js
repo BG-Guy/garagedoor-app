@@ -6,7 +6,7 @@
 //   iOweCompany   = max(0, cash+check collected - my due).
 //   companyOwesMe = max(0, my due - cash+check collected).
 function agg(entries) {
-  const a = entries.reduce((acc, e) => {
+  const a = entries.filter(e => !e.disputed).reduce((acc, e) => {
     acc.revenue += +e.totalPrice || 0;
     acc.cc      += +e.paidCC     || 0;
     acc.check   += +e.paidCheck  || 0;
