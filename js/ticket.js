@@ -6,16 +6,16 @@ function generateTicketText() {
   const parts = parseFloat(document.getElementById('totalParts').value) || 0;
   const tip   = parseFloat(document.getElementById('entryTip').value)   || 0;
 
-  const ft = n => Math.round(n || 0) + '$';
+  const ft    = n => Math.round(n || 0) + '$';
   const lines = [];
 
+  // Full unedited note verbatim — nothing stripped or split
   if (lastRawNote) {
-    const sepIdx = lastRawNote.search(/\*{3,}|[-–—]{2,}/);
-    const header = (sepIdx > -1 ? lastRawNote.slice(0, sepIdx) : lastRawNote).trim();
-    if (header) { lines.push(header); lines.push(''); }
+    lines.push(lastRawNote.trim());
+    lines.push('');
   }
 
-  lines.push('--- ');
+  lines.push('-------');
   lines.push('');
   lines.push('T price: ' + ft(price));
 
