@@ -10,10 +10,15 @@
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <title>GaragePro Tracker</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/cards.css">
+  <link rel="stylesheet" href="styles/forms.css">
+  <link rel="stylesheet" href="styles/nav.css">
+  <link rel="stylesheet" href="styles/history.css">
+  <link rel="stylesheet" href="styles/wheel.css">
+  <link rel="stylesheet" href="styles/utils.css">
   <style>
-    /* Critical tab rules inline so they always apply regardless of external CSS loading */
+    /* Critical tab rules inline to guarantee correct behavior */
     .tab { display: none !important; }
     .tab.active { display: block !important; animation: fadeSlide 0.22s ease; }
   </style>
@@ -510,6 +515,19 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="js/constants.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/business.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/parts-picker.js"></script>
+  <script src="js/parts-tab.js"></script>
+  <script src="js/ticket.js"></script>
+  <script src="js/form.js"></script>
+  <script src="js/banner.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/init.js"></script>
 </body>
 </html>

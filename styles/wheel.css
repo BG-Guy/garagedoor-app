@@ -1,0 +1,33 @@
+.sww {
+  position: relative; width: 60px; height: 120px;
+  overflow: hidden; border-radius: 12px; flex-shrink: 0;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.sw {
+  height: 120px; overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; -ms-overflow-style: none;
+  padding: 40px 0; box-sizing: border-box;
+}
+.sw::-webkit-scrollbar { display: none; }
+.swi {
+  height: 40px; display: flex; align-items: center;
+  justify-content: center; scroll-snap-align: center;
+  font-size: 14px; font-weight: 700;
+  color: rgba(255,255,255,0.15);
+  user-select: none; -webkit-user-select: none;
+}
+.sww::before, .sww::after {
+  content: ''; position: absolute; left: 0; right: 0;
+  height: 44px; pointer-events: none; z-index: 3;
+}
+.sww::before { top: 0;    background: linear-gradient(to bottom, rgba(7,16,31,0.95), transparent); }
+.sww::after  { bottom: 0; background: linear-gradient(to top,   rgba(7,16,31,0.95), transparent); }
+.sww .sw-line {
+  position: absolute; top: 40px; left: 4px; right: 4px; height: 40px;
+  border-top: 1px solid rgba(249,115,22,0.5);
+  border-bottom: 1px solid rgba(249,115,22,0.5);
+  border-radius: 8px; pointer-events: none; z-index: 2;
+}

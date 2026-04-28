@@ -1,0 +1,2 @@
+renderPartsPicker();
+updateBanner();
