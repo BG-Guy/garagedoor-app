@@ -16,6 +16,12 @@ function inRange(dateStr, a, b) {
   const d = new Date(dateStr + 'T00:00:00'); return d >= a && d <= b;
 }
 
+// Format a Date as YYYY-MM-DD in local time (avoids UTC drift from toISOString)
+const toDateStr = d =>
+  d.getFullYear() + '-' +
+  String(d.getMonth() + 1).padStart(2, '0') + '-' +
+  String(d.getDate()).padStart(2, '0');
+
 // ── Formatters ────────────────────────────────────────────────
 const f0    = n => '$' + Math.round(n||0).toLocaleString('en-US');
 const f2    = n => '$' + (n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
