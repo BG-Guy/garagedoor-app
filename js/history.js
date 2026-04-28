@@ -200,7 +200,7 @@ function renderHistory() {
     if ((+e.tip||0)>0) badges.push(`<span class="badge" style="background:rgba(74,222,128,0.12);color:#86efac;">🎁 Tip ${f0(e.tip)}</span>`);
 
     const tipCC  = (+e.paidCC > 0) ? (+e.tip || 0) : 0;
-    const myDue  = comm + tipCC;
+    const myDue  = comm + (+e.totalParts||0) + tipCC;
     const iGot   = (+e.paidCheck||0) + (+e.paidCash||0);
     const iOwe   = Math.max(0, iGot - myDue);
     const coOwes = Math.max(0, myDue - iGot);
@@ -282,7 +282,7 @@ function summarizeSelected() {
     a.ccTip += (+e.paidCC > 0) ? (+e.tip || 0) : 0;
     return a;
   }, {price:0,parts:0,cc:0,cash:0,check:0,tip:0,ccTip:0});
-  const myDue  = (t.price-t.parts)*0.30 + t.ccTip;
+  const myDue  = (t.price-t.parts)*0.30 + t.parts + t.ccTip;
   const iGot   = t.check + t.cash;
   const text   = [
     `T jobs:          ${entries.length}`,
@@ -344,7 +344,7 @@ function exportCSV() {
   const hdr  = ['Date','Description','Total Price','Paid CC','Paid Check','Paid Cash','Total Parts','My Commission (30%)','Company Owes Me','I Owe Company'];
   const rows = entries.map(e => {
     const price=+e.totalPrice||0, parts=+e.totalParts||0, check=+e.paidCheck||0, cash=+e.paidCash||0;
-    const comm=((price-parts)*0.30), tipCC=(+e.paidCC>0?(+e.tip||0):0), myDue=comm+tipCC, iGot=check+cash;
+    const comm=((price-parts)*0.30), tipCC=(+e.paidCC>0?(+e.tip||0):0), myDue=comm+parts+tipCC, iGot=check+cash;
     return [e.date,'"'+(e.description||'').replace(/"/g,'""')+'"',price,e.paidCC||0,check,cash,parts,
       comm.toFixed(2), Math.max(0,myDue-iGot).toFixed(2), Math.max(0,iGot-myDue).toFixed(2)];
   });
