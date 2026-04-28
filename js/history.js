@@ -28,10 +28,26 @@ function updateSelectionUI() {
   if (selBtn)  selBtn.textContent  = selectedIds.size > 0 ? 'Clear Selection' : 'Select All';
 }
 
+// Returns only the entries currently visible after all active filters
+function getFilteredEntries() {
+  const hFrom  = document.getElementById('hFrom').value;
+  const hTo    = document.getElementById('hTo').value;
+  let entries  = load().sort((a,b) => new Date(b.date) - new Date(a.date));
+  if (hFrom || hTo) {
+    const start = hFrom ? new Date(hFrom+'T00:00:00') : new Date(0);
+    const end   = hTo   ? new Date(hTo+'T23:59:59')   : new Date(9999,0,1);
+    entries = entries.filter(e => inRange(e.date, start, end));
+  }
+  const search = (document.getElementById('historySearch').value||'').trim().toLowerCase();
+  if (search) entries = entries.filter(e => (e.description||'').toLowerCase().includes(search));
+  return entries;
+}
+
 function toggleSelectAll() {
-  const entries = load();
-  if (selectedIds.size === entries.length) selectedIds.clear();
-  else entries.forEach(e => selectedIds.add(e.id));
+  const entries = getFilteredEntries();
+  const allSelected = entries.length > 0 && entries.every(e => selectedIds.has(e.id));
+  if (allSelected) entries.forEach(e => selectedIds.delete(e.id));
+  else             entries.forEach(e => selectedIds.add(e.id));
   renderHistory();
 }
 
@@ -288,7 +304,8 @@ function summarizeSelected() {
     return a;
   }, {price:0,parts:0,cc:0,cash:0,check:0,tip:0,ccFee:0,ccTip:0});
   const net    = t.price - t.ccFee;
-  const myDue  = (net - t.parts) * 0.30 + t.parts + t.ccTip;
+  const comm   = (net - t.parts) * 0.30;
+  const myDue  = comm + t.parts + t.ccTip;
   const iGot   = t.check + t.cash;
   const text   = [
     `T jobs:          ${entries.length}`,
@@ -298,6 +315,10 @@ function summarizeSelected() {
     `Paid by cash:    ${f2(t.cash)}`,
     `Paid by check:   ${f2(t.check)}`,
     `T tip:           ${f2(t.tip)}`,
+    `─────────────────────────`,
+    `Commission:      ${f2(comm)}`,
+    `Comm + Parts:    ${f2(comm + t.parts)}`,
+    `─────────────────────────`,
     `Owe the company: ${f2(Math.max(0,iGot-myDue))}`,
     `Company owe me:  ${f2(Math.max(0,myDue-iGot))}`,
   ].join('\n');
