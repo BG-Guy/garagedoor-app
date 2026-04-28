@@ -139,9 +139,17 @@ function setHistoryRange(mode) {
   if (mode === 'week') {
     document.getElementById('hFrom').value = weekStart(now).toISOString().slice(0,10);
     document.getElementById('hTo').value   = weekEnd(now).toISOString().slice(0,10);
+  } else if (mode === 'lastweek') {
+    const s = weekStart(now); s.setDate(s.getDate() - 7);
+    const e = weekEnd(now);   e.setDate(e.getDate() - 7);
+    document.getElementById('hFrom').value = s.toISOString().slice(0,10);
+    document.getElementById('hTo').value   = e.toISOString().slice(0,10);
   } else if (mode === 'month') {
     document.getElementById('hFrom').value = monthStart(now).toISOString().slice(0,10);
     document.getElementById('hTo').value   = monthEnd(now).toISOString().slice(0,10);
+  } else if (mode === 'lastmonth') {
+    document.getElementById('hFrom').value = lastMonthStart(now).toISOString().slice(0,10);
+    document.getElementById('hTo').value   = lastMonthEnd(now).toISOString().slice(0,10);
   } else {
     document.getElementById('hFrom').value = '';
     document.getElementById('hTo').value   = '';

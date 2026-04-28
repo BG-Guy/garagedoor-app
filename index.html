@@ -385,10 +385,14 @@
             <input type="date" id="hTo" onchange="renderHistory()">
           </div>
         </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button onclick="setHistoryRange('week')"     class="btn-sm" style="flex:1;font-size:12px;">This Week</button>
+          <button onclick="setHistoryRange('lastweek')" class="btn-sm" style="flex:1;font-size:12px;">Last Week</button>
+        </div>
         <div style="display:flex;gap:8px;">
-          <button onclick="setHistoryRange('week')"  class="btn-sm" style="flex:1;font-size:12px;">This Week</button>
-          <button onclick="setHistoryRange('month')" class="btn-sm" style="flex:1;font-size:12px;">This Month</button>
-          <button onclick="setHistoryRange('all')"   class="btn-sm" style="flex:1;font-size:12px;">All</button>
+          <button onclick="setHistoryRange('month')"     class="btn-sm" style="flex:1;font-size:12px;">This Month</button>
+          <button onclick="setHistoryRange('lastmonth')" class="btn-sm" style="flex:1;font-size:12px;">Last Month</button>
+          <button onclick="setHistoryRange('all')"       class="btn-sm" style="flex:1;font-size:12px;">All</button>
         </div>
       </div>
 
