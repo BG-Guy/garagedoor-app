@@ -74,7 +74,7 @@ document.getElementById('entryForm').addEventListener('submit', function(e) {
     paidCash:    +document.getElementById('paidCash').value   || 0,
     totalParts:  +document.getElementById('totalParts').value || 0,
     tip:         +document.getElementById('entryTip').value   || 0,
-    rawNote:     lastRawNote || '',
+    rawNote:     document.getElementById('parseInput').value.trim() || lastRawNote || '',
     partsList,
     ticketText:  ticket,
   };

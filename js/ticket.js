@@ -5,18 +5,22 @@ function generateTicketText() {
   const cash  = parseFloat(document.getElementById('paidCash').value)   || 0;
   const parts = parseFloat(document.getElementById('totalParts').value) || 0;
   const tip   = parseFloat(document.getElementById('entryTip').value)   || 0;
+  const desc  = document.getElementById('entryDesc').value.trim();
+
+  // Always read directly from the paste box — works even without clicking Fill
+  const rawNote = document.getElementById('parseInput').value.trim() || lastRawNote;
 
   const ft    = n => Math.round(n || 0) + '$';
   const lines = [];
 
-  // Full unedited note verbatim — nothing stripped or split
-  if (lastRawNote) {
-    lines.push(lastRawNote.trim());
+  if (rawNote) {
+    lines.push(rawNote);
     lines.push('');
   }
 
   lines.push('-------');
   lines.push('');
+  if (desc) lines.push(desc);
   lines.push('T price: ' + ft(price));
 
   if (parts > 0) {
