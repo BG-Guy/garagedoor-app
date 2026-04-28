@@ -344,21 +344,3 @@ function confirmClearAll() {
   }
 }
 
-function exportCSV() {
-  const entries = load().sort((a,b) => new Date(a.date)-new Date(b.date));
-  if (!entries.length) { toast('No data to export','#f97316'); return; }
-  const hdr  = ['Date','Description','Total Price','Paid CC','Paid Check','Paid Cash','Total Parts','My Commission (30%)','Company Owes Me','I Owe Company'];
-  const rows = entries.map(e => {
-    const price=+e.totalPrice||0, parts=+e.totalParts||0, check=+e.paidCheck||0, cash=+e.paidCash||0;
-    const ccFee=cc*0.04, net=price-ccFee, comm=(net-parts)*0.30, tipCC=(cc>0?(+e.tip||0):0), myDue=comm+parts+tipCC, iGot=check+cash;
-    return [e.date,'"'+(e.description||'').replace(/"/g,'""')+'"',price,e.paidCC||0,check,cash,parts,
-      comm.toFixed(2), Math.max(0,myDue-iGot).toFixed(2), Math.max(0,iGot-myDue).toFixed(2)];
-  });
-  const csv = [hdr.join(','),...rows.map(r=>r.join(','))].join('\n');
-  const a   = Object.assign(document.createElement('a'),{
-    href:URL.createObjectURL(new Blob([csv],{type:'text/csv'})),
-    download:'garagepro_'+new Date().toISOString().slice(0,10)+'.csv'
-  });
-  a.click(); URL.revokeObjectURL(a.href);
-  toast('✓ CSV exported!');
-}
