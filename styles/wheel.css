@@ -10,6 +10,7 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none; -ms-overflow-style: none;
   padding: 40px 0; box-sizing: border-box;
+  overscroll-behavior: contain;
 }
 .sw::-webkit-scrollbar { display: none; }
 .swi {

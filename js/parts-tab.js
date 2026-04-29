@@ -48,9 +48,13 @@ function renderSettingsTab() {
           'border:1px solid rgba(249,115,22,0.45);color:#f97316;font-size:15px;font-weight:700;">+ Add Inventory</button>';
   html += '</div>';
 
-  // ── Card 2: Item Descriptions ──
+  // ── Card 2: Item Descriptions (collapsible) ──
   html += '<div class="card">';
-  html += '<div class="slabel">Item Descriptions</div>';
+  html += '<div id="descToggleRow" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">';
+  html += '<div class="slabel" style="margin-bottom:0;">Item Descriptions</div>';
+  html += '<span id="descArrow" style="font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;">▼ Show</span>';
+  html += '</div>';
+  html += '<div id="descSection" style="display:none;margin-top:14px;">';
   html += '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:16px;">' +
           'Edit what gets copied when you tap an item. Leave blank to use the default.</div>';
 
@@ -64,7 +68,7 @@ function renderSettingsTab() {
     html += '</div>';
   });
 
-  html += '</div>';
+  html += '</div></div>';
 
   // ── Card 3: Custom Items ──────────────────────────────────────
   const customItems = getCustomItems();
@@ -163,6 +167,18 @@ function renderSettingsTab() {
 
   const addBtn = document.getElementById('addInventoryBtn');
   if (addBtn) addBtn.addEventListener('click', openAddInventory);
+
+  // ── Item Descriptions collapse toggle ──
+  const descToggleRow = cont.querySelector('#descToggleRow');
+  const descSection   = cont.querySelector('#descSection');
+  const descArrow     = cont.querySelector('#descArrow');
+  if (descToggleRow) {
+    descToggleRow.addEventListener('click', function() {
+      const open = descSection.style.display !== 'none';
+      descSection.style.display = open ? 'none' : 'block';
+      descArrow.textContent     = open ? '▼ Show' : '▲ Hide';
+    });
+  }
 
   // ── Custom item: delete ──
   cont.querySelectorAll('[data-delete-custom]').forEach(function(btn) {
