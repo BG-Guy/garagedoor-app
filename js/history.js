@@ -243,7 +243,8 @@ function renderHistory() {
           </div>
           <div style="text-align:right;flex-shrink:0;margin-left:12px;">
             <div style="font-size:22px;font-weight:800;color:#f97316;">${f0(e.totalPrice)}</div>
-            <div style="font-size:12px;font-weight:600;color:#4ade80;">Commission: ${f0(comm)}</div>
+            <div style="font-size:12px;font-weight:600;color:#4ade80;">Comm: ${f0(comm)}</div>
+            <div style="font-size:11px;color:rgba(249,115,22,0.7);">+Parts: ${f0(comm+parts)}</div>
           </div>
         </div>
         ${badges.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">${badges.join('')}</div>`:''}

@@ -2,8 +2,14 @@ let drFrom = '', drTo = '';
 
 function renderDashboard() {
   const now     = new Date();
+  const today   = toDateStr(now);
   const entries = load();
 
+  // Today
+  const td = agg(entries.filter(e => e.date === today));
+  document.getElementById('dTodayStats').innerHTML = periodStats(td);
+
+  // Week vs Last Week
   const tw = agg(entries.filter(e => inRange(e.date, weekStart(now), weekEnd(now))));
   const lw = (() => {
     const ls = weekStart(now); ls.setDate(ls.getDate()-7);
@@ -95,9 +101,10 @@ function renderStats(a, jobCount) {
     else                                            top = '💵 Cash';
   }
   const rows = [
-    { l:'Total Jobs',          v:jobCount,            c:'#f97316' },
+    { l:'Total Jobs',          v:jobCount,             c:'#f97316' },
     { l:'Total Revenue',       v:f0(a.revenue),        c:'#fff'    },
     { l:'My Commission (30%)', v:f0(a.myCommission),   c:'#f97316' },
+    { l:'Comm + Parts',        v:f0(a.commPlusParts),  c:'#f97316' },
     { l:'Total Parts',         v:f0(a.parts),          c:'#f87171' },
     { l:'Total Tips',          v:f0(a.tip),            c:'#4ade80' },
     { l:'Total Profit',        v:f0(profit),           c:'#4ade80' },
@@ -117,9 +124,10 @@ function renderStats(a, jobCount) {
 function periodStats(a) {
   const avg = a.jobs > 0 ? a.revenue / a.jobs : 0;
   return [
-    { l:'Jobs',            v:a.jobs,              c:'#f97316' },
+    { l:'Jobs',            v:a.jobs,               c:'#f97316' },
     { l:'Revenue',         v:f0(a.revenue),        c:'#fff'    },
     { l:'Commission (30%)',v:f0(a.myCommission),   c:'#f97316' },
+    { l:'Comm + Parts',    v:f0(a.commPlusParts),  c:'#f97316' },
     { l:'Parts',           v:f0(a.parts),          c:'#f87171' },
     { l:'Tips',            v:f0(a.tip),            c:'#4ade80' },
     { l:'Profit',          v:f0(a.revenue-a.parts),c:'#4ade80' },
@@ -139,11 +147,12 @@ function compareHtml(cur, prev, curL, prevL) {
   const curAvg   = cur.jobs  > 0 ? cur.revenue  / cur.jobs  : 0;
   const prevAvg  = prev.jobs > 0 ? prev.revenue / prev.jobs : 0;
   const items = [
-    { label:'Revenue',    cur:cur.revenue, prev:prev.revenue, color:'#f97316' },
-    { label:'Commission', cur:curComm,     prev:prevComm,     color:'#4ade80' },
-    { label:'Parts Cost', cur:cur.parts,   prev:prev.parts,   color:'#f87171' },
-    { label:'Jobs',       cur:cur.jobs,    prev:prev.jobs,    color:'#93c5fd', money:false },
-    { label:'AVG Ticket', cur:curAvg,      prev:prevAvg,      color:'#fde047' },
+    { label:'Revenue',      cur:cur.revenue,         prev:prev.revenue,         color:'#f97316' },
+    { label:'Commission',   cur:curComm,             prev:prevComm,             color:'#4ade80' },
+    { label:'Comm + Parts', cur:cur.commPlusParts,   prev:prev.commPlusParts,   color:'#f97316' },
+    { label:'Parts Cost',   cur:cur.parts,           prev:prev.parts,           color:'#f87171' },
+    { label:'Jobs',         cur:cur.jobs,            prev:prev.jobs,            color:'#93c5fd', money:false },
+    { label:'AVG Ticket',   cur:curAvg,              prev:prevAvg,              color:'#fde047' },
   ];
   return items.map(it => {
     const diff = it.cur - it.prev;

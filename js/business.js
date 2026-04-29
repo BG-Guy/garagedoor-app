@@ -27,7 +27,8 @@ function agg(entries) {
 
   a.netRevenue    = a.revenue - a.ccFee;
   a.myCommission  = (a.netRevenue - a.parts) * 0.30;
-  const myDue     = a.myCommission + a.parts + a.ccTip;
+  a.commPlusParts = a.myCommission + a.parts;
+  const myDue     = a.commPlusParts + a.ccTip;
   const iGot      = a.check + a.cash;
   a.iOweCompany   = Math.max(0, iGot - myDue);
   a.companyOwesMe = Math.max(0, myDue - iGot);

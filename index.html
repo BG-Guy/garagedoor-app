@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="styles/history.css">
   <link rel="stylesheet" href="styles/wheel.css">
   <link rel="stylesheet" href="styles/utils.css">
+  <link rel="stylesheet" href="styles/items.css">
   <style>
     /* Critical tab rules inline to guarantee correct behavior */
     .tab { display: none !important; }
@@ -130,6 +131,10 @@
           <div class="label-sm" style="color:rgba(255,255,255,0.45);">Commission (30%)</div>
           <div style="font-size:34px;font-weight:800;letter-spacing:-1px;line-height:1;color:#f97316;" id="wCommission">$0</div>
         </div>
+        <div>
+          <div class="label-sm" style="color:rgba(255,255,255,0.45);">Comm + Parts</div>
+          <div style="font-size:28px;font-weight:800;letter-spacing:-0.5px;line-height:1;color:#f97316;" id="wCommParts">$0</div>
+        </div>
 
         <hr class="sep">
 
@@ -226,7 +231,7 @@
             <label class="label-sm">Total Price</label>
             <div class="input-wrap has-prefix">
               <span class="prefix" style="color:rgba(249,115,22,0.7);">$</span>
-              <input type="number" id="totalPrice" min="0" step="0.01" placeholder="0.00" required>
+              <input type="number" inputmode="decimal" id="totalPrice" min="0" step="0.01" placeholder="0.00" required>
             </div>
           </div>
 
@@ -238,21 +243,21 @@
               <label class="label-sm" style="color:#93c5fd;">💳 Paid by Credit Card</label>
               <div class="input-wrap has-prefix">
                 <span class="prefix">$</span>
-                <input type="number" id="paidCC" min="0" step="0.01" placeholder="0.00">
+                <input type="number" inputmode="decimal" id="paidCC" min="0" step="0.01" placeholder="0.00">
               </div>
             </div>
             <div style="margin-bottom:10px;">
               <label class="label-sm" style="color:#fde047;">📝 Paid by Check</label>
               <div class="input-wrap has-prefix">
                 <span class="prefix">$</span>
-                <input type="number" id="paidCheck" min="0" step="0.01" placeholder="0.00">
+                <input type="number" inputmode="decimal" id="paidCheck" min="0" step="0.01" placeholder="0.00">
               </div>
             </div>
             <div>
               <label class="label-sm" style="color:#4ade80;">💵 Paid by Cash</label>
               <div class="input-wrap has-prefix">
                 <span class="prefix">$</span>
-                <input type="number" id="paidCash" min="0" step="0.01" placeholder="0.00">
+                <input type="number" inputmode="decimal" id="paidCash" min="0" step="0.01" placeholder="0.00">
               </div>
             </div>
 
@@ -275,7 +280,7 @@
             <label class="label-sm">Tip (optional)</label>
             <div class="input-wrap has-prefix">
               <span class="prefix" style="color:rgba(74,222,128,0.7);">$</span>
-              <input type="number" id="entryTip" min="0" step="0.01" placeholder="0.00">
+              <input type="number" inputmode="decimal" id="entryTip" min="0" step="0.01" placeholder="0.00">
             </div>
           </div>
 
@@ -304,6 +309,12 @@
 
     <!-- ══ TAB: DASHBOARD ══ -->
     <div id="tab-dashboard" class="tab">
+
+      <!-- Today -->
+      <div class="card">
+        <div class="slabel">📅 Today</div>
+        <div id="dTodayStats"></div>
+      </div>
 
       <!-- Week vs Last Week -->
       <div class="card">
@@ -441,6 +452,14 @@
       </div>
     </div>
 
+    <!-- ══ TAB: ITEMS ══ -->
+    <div id="tab-items" class="tab">
+      <div class="card" style="margin-bottom:14px;">
+        <div class="slabel">🏷️ Tap any item to copy its description</div>
+        <div class="items-grid" id="itemsGrid"></div>
+      </div>
+    </div>
+
     <!-- ══ TAB: PARTS ══ -->
     <div id="tab-parts" class="tab">
       <div class="card">
@@ -495,6 +514,9 @@
       <button id="nav-parts" class="nav-btn" onclick="switchTab('parts')">
         <span class="ni">🔧</span><span>Parts</span>
       </button>
+      <button id="nav-items" class="nav-btn" onclick="switchTab('items')">
+        <span class="ni">🏷️</span><span>Items</span>
+      </button>
     </div>
   </nav>
 
@@ -533,6 +555,7 @@
   <script src="js/dashboard.js"></script>
   <script src="js/history.js"></script>
   <script src="js/csv.js"></script>
+  <script src="js/items.js"></script>
   <script src="js/nav.js"></script>
   <script src="js/init.js"></script>
 </body>

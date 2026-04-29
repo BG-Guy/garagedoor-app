@@ -96,7 +96,7 @@ function renderPartsPicker() {
 
       html += '<div class="input-wrap has-prefix" style="width:84px;flex-shrink:0;">' +
               '<span class="prefix">$</span>' +
-              '<input type="number" data-field="price" min="0" step="0.01" placeholder="0" value="' + (r.price||'') + '">' +
+              '<input type="number" inputmode="decimal" data-field="price" min="0" step="0.01" placeholder="0" value="' + (r.price||'') + '">' +
               '</div>';
       html += '<button type="button" data-remove="' + r.rowId + '" style="' +
               'background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);' +

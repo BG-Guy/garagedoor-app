@@ -28,7 +28,7 @@ function renderPartsTab() {
     html += '<div style="font-size:15px;font-weight:700;">' + p.label + '</div>';
     html += '</div>';
     html += '<div class="input-wrap has-prefix"><span class="prefix">$</span>' +
-            '<input type="number" data-part="' + p.id + '" data-field="price" ' +
+            '<input type="number" inputmode="decimal" data-part="' + p.id + '" data-field="price" ' +
             'min="0" step="0.01" placeholder="0.00" value="' + (c.price||'') + '"></div></div>';
     html += '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">';
     html += '<div style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;">Stock</div>';

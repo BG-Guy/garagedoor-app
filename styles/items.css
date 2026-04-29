@@ -1,0 +1,31 @@
+.items-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.item-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 22px 12px;
+  text-align: center;
+  cursor: pointer;
+  min-height: 80px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, border-color 0.12s;
+  user-select: none; -webkit-user-select: none;
+}
+.item-card:active,
+.item-card--flash {
+  background: rgba(249,115,22,0.18);
+  border-color: rgba(249,115,22,0.55);
+}
+
+.item-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.35;
+  letter-spacing: -0.2px;
+}
