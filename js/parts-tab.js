@@ -9,9 +9,8 @@ function updateInventoryOnSave() {
 }
 
 function renderSettingsTab() {
-  const cfg   = getPartsConfig();
-  const descs = getItemDescs();
-  const cont  = document.getElementById('settingsContent');
+  const cfg  = getPartsConfig();
+  const cont = document.getElementById('settingsContent');
   if (!cont) return;
 
   // ── Wheel items 0–99 ──
@@ -48,59 +47,16 @@ function renderSettingsTab() {
           'border:1px solid rgba(249,115,22,0.45);color:#f97316;font-size:15px;font-weight:700;">+ Add Inventory</button>';
   html += '</div>';
 
-  // ── Card 2: Item Descriptions (collapsible) ──
+  // ── Card 2: Add Item ──────────────────────────────────────────
   html += '<div class="card">';
-  html += '<div id="descToggleRow" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">';
-  html += '<div class="slabel" style="margin-bottom:0;">Item Descriptions</div>';
-  html += '<span id="descArrow" style="font-size:12px;color:rgba(255,255,255,0.4);font-weight:600;">▼ Show</span>';
-  html += '</div>';
-  html += '<div id="descSection" style="display:none;margin-top:14px;">';
-  html += '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:16px;">' +
-          'Edit what gets copied when you tap an item. Leave blank to use the default.</div>';
-
-  ITEMS.forEach(function(item) {
-    const current = (descs[item.id] || '').replace(/</g, '&lt;');
-    html += '<div style="margin-bottom:20px;">';
-    html += '<div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:7px;">' + item.name + '</div>';
-    html += '<textarea data-item-desc="' + item.id + '" rows="3" ' +
-            'placeholder="' + item.desc.replace(/"/g, '&quot;') + '" ' +
-            'style="font-size:12px;line-height:1.6;">' + current + '</textarea>';
-    html += '</div>';
-  });
-
-  html += '</div></div>';
-
-  // ── Card 3: Custom Items ──────────────────────────────────────
-  const customItems = getCustomItems();
-  html += '<div class="card">';
-  html += '<div class="slabel">Custom Items</div>';
-  html += '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:14px;">Items you add here appear in the Items tab and can be tapped to copy their description.</div>';
-
-  if (customItems.length > 0) {
-    customItems.forEach(function(ci) {
-      html += '<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.06);">';
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">';
-      html += '<div style="font-size:14px;font-weight:700;">' + ci.name + '</div>';
-      html += '<button data-delete-custom="' + ci.id + '" class="btn-sm danger" style="font-size:11px;padding:5px 10px;">Delete</button>';
-      html += '</div>';
-      html += '<textarea data-custom-item-desc="' + ci.id + '" rows="3" style="font-size:12px;line-height:1.6;">' +
-              (ci.desc || '').replace(/</g, '&lt;') + '</textarea>';
-      html += '</div>';
-    });
-  } else {
-    html += '<div style="font-size:13px;color:rgba(255,255,255,0.28);text-align:center;padding:12px 0 16px;">No custom items yet</div>';
-  }
-
-  // Add-item form
-  html += '<div style="margin-top:4px;">';
-  html += '<label class="label-sm">Item Name</label>';
+  html += '<div class="slabel">Add Item</div>';
+  html += '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:14px;">New items appear in the Items tab. Tap any item there to edit or delete it.</div>';
+  html += '<label class="label-sm">Title</label>';
   html += '<input type="text" id="newItemName" placeholder="e.g. Cable Bracket" style="margin-bottom:10px;">';
   html += '<label class="label-sm">Description</label>';
-  html += '<textarea id="newItemDesc" rows="3" placeholder="Professional description that gets copied when tapped…" style="font-size:13px;line-height:1.6;margin-bottom:10px;"></textarea>';
-  html += '<button id="addCustomItemBtn" style="width:100%;padding:13px;border-radius:12px;cursor:pointer;' +
-          'background:linear-gradient(135deg,rgba(249,115,22,0.2),rgba(249,115,22,0.08));' +
-          'border:1px solid rgba(249,115,22,0.4);color:#f97316;font-size:14px;font-weight:700;">+ Add to Items Tab</button>';
-  html += '</div></div>';
+  html += '<textarea id="newItemDesc" rows="3" placeholder="Description that gets copied when tapped…" style="font-size:13px;line-height:1.6;margin-bottom:10px;"></textarea>';
+  html += '<button id="addCustomItemBtn" class="btn-primary">+ Add to Items Tab</button>';
+  html += '</div>';
 
   cont.innerHTML = html;
 
@@ -148,77 +104,23 @@ function renderSettingsTab() {
     });
   });
 
-  // Item description textareas → debounced auto-save
-  const saveTimers = {};
-  cont.querySelectorAll('[data-item-desc]').forEach(function(ta) {
-    ta.addEventListener('input', function() {
-      const id = ta.getAttribute('data-item-desc');
-      clearTimeout(saveTimers[id]);
-      saveTimers[id] = setTimeout(function() {
-        const d   = getItemDescs();
-        const val = ta.value.trim();
-        if (val) d[id] = val;
-        else     delete d[id];
-        saveItemDescs(d);
-        toast('✓ Saved — will copy in Items tab');
-      }, 700);
-    });
-  });
-
   const addBtn = document.getElementById('addInventoryBtn');
   if (addBtn) addBtn.addEventListener('click', openAddInventory);
 
-  // ── Item Descriptions collapse toggle ──
-  const descToggleRow = cont.querySelector('#descToggleRow');
-  const descSection   = cont.querySelector('#descSection');
-  const descArrow     = cont.querySelector('#descArrow');
-  if (descToggleRow) {
-    descToggleRow.addEventListener('click', function() {
-      const open = descSection.style.display !== 'none';
-      descSection.style.display = open ? 'none' : 'block';
-      descArrow.textContent     = open ? '▼ Show' : '▲ Hide';
-    });
-  }
-
-  // ── Custom item: delete ──
-  cont.querySelectorAll('[data-delete-custom]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      const id   = btn.getAttribute('data-delete-custom');
-      const left = getCustomItems().filter(function(i) { return i.id !== id; });
-      saveCustomItems(left);
-      renderSettingsTab();
-      renderItemsTab();
-      toast('Item deleted', '#f87171');
-    });
-  });
-
-  // ── Custom item: desc auto-save ──
-  const ciTimers = {};
-  cont.querySelectorAll('[data-custom-item-desc]').forEach(function(ta) {
-    ta.addEventListener('input', function() {
-      const id = ta.getAttribute('data-custom-item-desc');
-      clearTimeout(ciTimers[id]);
-      ciTimers[id] = setTimeout(function() {
-        const items = getCustomItems();
-        const item  = items.find(function(i) { return i.id === id; });
-        if (item) { item.desc = ta.value; saveCustomItems(items); toast('✓ Description saved'); }
-      }, 700);
-    });
-  });
-
-  // ── Add custom item ──
-  const addCustomItemBtn = document.getElementById('addCustomItemBtn');
-  if (addCustomItemBtn) {
-    addCustomItemBtn.addEventListener('click', function() {
+  // ── Add item ──
+  const addItemBtn = document.getElementById('addCustomItemBtn');
+  if (addItemBtn) {
+    addItemBtn.addEventListener('click', function() {
       const name = (document.getElementById('newItemName').value || '').trim();
       const desc = (document.getElementById('newItemDesc').value || '').trim();
-      if (!name) { toast('Enter a name', '#f97316'); return; }
+      if (!name) { toast('Enter a title', '#f97316'); return; }
       if (!desc) { toast('Enter a description', '#f97316'); return; }
-      const items = getCustomItems();
-      items.push({ id: 'custom_' + Date.now(), name: name, desc: desc });
-      saveCustomItems(items);
-      renderSettingsTab();
+      const all = getAllItems();
+      all.push({ id: 'custom_' + Date.now(), name: name, desc: desc });
+      saveAllItems(all);
       renderItemsTab();
+      document.getElementById('newItemName').value = '';
+      document.getElementById('newItemDesc').value = '';
       toast('✓ ' + name + ' added to Items tab');
     });
   }

@@ -12,17 +12,23 @@ function getPartsConfig() {
 }
 function savePartsConfig(cfg) { localStorage.setItem(PARTS_CFG_KEY, JSON.stringify(cfg)); }
 
-const ITEM_DESCS_KEY    = 'gp_item_descs';
-const CUSTOM_ITEMS_KEY  = 'gp_custom_items';
+const ALL_ITEMS_KEY = 'gp_all_items';
 
-function getItemDescs() {
-  try { return JSON.parse(localStorage.getItem(ITEM_DESCS_KEY)) || {}; }
-  catch { return {}; }
+// Returns all items (preset defaults merged with user edits/additions).
+// On first call, populates from the ITEMS constant defined in items.js.
+function getAllItems() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(ALL_ITEMS_KEY));
+    if (stored && stored.length > 0) return stored;
+  } catch {}
+  // First run: seed from preset defaults
+  const defaults = ITEMS.map(function(i) {
+    return { id: i.id, name: i.name, desc: i.desc };
+  });
+  saveAllItems(defaults);
+  return defaults;
 }
-function saveItemDescs(d) { localStorage.setItem(ITEM_DESCS_KEY, JSON.stringify(d)); }
 
-function getCustomItems() {
-  try { return JSON.parse(localStorage.getItem(CUSTOM_ITEMS_KEY)) || []; }
-  catch { return []; }
+function saveAllItems(items) {
+  localStorage.setItem(ALL_ITEMS_KEY, JSON.stringify(items));
 }
-function saveCustomItems(items) { localStorage.setItem(CUSTOM_ITEMS_KEY, JSON.stringify(items)); }
