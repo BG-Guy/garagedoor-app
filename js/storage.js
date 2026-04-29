@@ -12,9 +12,17 @@ function getPartsConfig() {
 }
 function savePartsConfig(cfg) { localStorage.setItem(PARTS_CFG_KEY, JSON.stringify(cfg)); }
 
-const ITEM_DESCS_KEY = 'gp_item_descs';
+const ITEM_DESCS_KEY    = 'gp_item_descs';
+const CUSTOM_ITEMS_KEY  = 'gp_custom_items';
+
 function getItemDescs() {
   try { return JSON.parse(localStorage.getItem(ITEM_DESCS_KEY)) || {}; }
   catch { return {}; }
 }
 function saveItemDescs(d) { localStorage.setItem(ITEM_DESCS_KEY, JSON.stringify(d)); }
+
+function getCustomItems() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_ITEMS_KEY)) || []; }
+  catch { return []; }
+}
+function saveCustomItems(items) { localStorage.setItem(CUSTOM_ITEMS_KEY, JSON.stringify(items)); }

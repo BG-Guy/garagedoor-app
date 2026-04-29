@@ -81,10 +81,19 @@ const ITEMS = [
   },
 ];
 
-// Returns the custom description if set in Settings, otherwise the default
+// Returns the description that will be copied for an item.
+// Priority: custom override (from Settings) > custom item desc > preset default.
 function getItemDesc(id) {
-  const custom = getItemDescs();
-  if (custom[id] && custom[id].trim()) return custom[id];
+  // Custom item added by user — desc lives in the item itself
+  const custom = getCustomItems().find(i => i.id === id);
+  if (custom) {
+    // Check if there's also an override saved via the desc textarea
+    const overrides = getItemDescs();
+    return (overrides[id] && overrides[id].trim()) ? overrides[id] : (custom.desc || '');
+  }
+  // Preset item — check for override, else use default
+  const overrides = getItemDescs();
+  if (overrides[id] && overrides[id].trim()) return overrides[id];
   const item = ITEMS.find(i => i.id === id);
   return item ? item.desc : '';
 }
@@ -93,16 +102,18 @@ function renderItemsTab() {
   const grid = document.getElementById('itemsGrid');
   if (!grid) return;
 
-  grid.innerHTML = ITEMS.map(item =>
-    `<div class="item-card" data-item="${item.id}">
-       <div class="item-name">${item.name}</div>
-     </div>`
-  ).join('');
+  const allItems = [...ITEMS, ...getCustomItems()];
+
+  grid.innerHTML = allItems.map(function(item) {
+    return '<div class="item-card" data-item="' + item.id + '">' +
+           '<div class="item-name">' + item.name + '</div>' +
+           '</div>';
+  }).join('');
 
   grid.querySelectorAll('.item-card').forEach(function(card) {
     card.addEventListener('click', function() {
       const id   = card.getAttribute('data-item');
-      const item = ITEMS.find(i => i.id === id);
+      const item = allItems.find(i => i.id === id);
       if (!item) return;
       const text = getItemDesc(id);
       navigator.clipboard.writeText(text).then(
