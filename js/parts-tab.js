@@ -8,28 +8,34 @@ function updateInventoryOnSave() {
   savePartsConfig(cfg);
 }
 
-function renderPartsTab() {
-  const cfg  = getPartsConfig();
-  const list = document.getElementById('partsConfigList');
-  if (!list) return;
+function renderSettingsTab() {
+  const cfg   = getPartsConfig();
+  const descs = getItemDescs();
+  const cont  = document.getElementById('settingsContent');
+  if (!cont) return;
 
+  // ── Wheel items 0–99 ──
   let wheelItems = '';
   for (let i = 0; i <= 99; i++) wheelItems += '<div class="swi">' + i + '</div>';
 
-  let html = '';
+  // ── Card 1: Part Prices & Inventory ──
+  let html = '<div class="card" style="margin-bottom:14px;">';
+  html += '<div class="slabel">Part Prices &amp; Inventory</div>';
+  html += '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:14px;">' +
+          'Prices auto-fill when you pick a part. Stock decrements on job save.</div>';
+
   PRESET_PARTS.forEach(function(p) {
     const c     = cfg[p.id] || { price: 0, stock: 0 };
     const stock = Math.min(99, c.stock || 0);
-
     html += '<div style="display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.06);">';
     html += '<div style="flex:1;">';
     html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
-    html += '<div style="font-size:22px;">' + p.icon + '</div>';
+    html += '<div style="font-size:20px;">' + p.icon + '</div>';
     html += '<div style="font-size:15px;font-weight:700;">' + p.label + '</div>';
     html += '</div>';
     html += '<div class="input-wrap has-prefix"><span class="prefix">$</span>' +
             '<input type="number" inputmode="decimal" data-part="' + p.id + '" data-field="price" ' +
-            'min="0" step="0.01" placeholder="0.00" value="' + (c.price||'') + '"></div></div>';
+            'min="0" step="0.01" placeholder="0.00" value="' + (c.price || '') + '"></div></div>';
     html += '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;">';
     html += '<div style="font-size:10px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;">Stock</div>';
     html += '<div class="sww"><div class="sw-line"></div>' +
@@ -40,10 +46,29 @@ function renderPartsTab() {
   html += '<button id="addInventoryBtn" style="margin-top:18px;width:100%;padding:14px;border-radius:14px;cursor:pointer;' +
           'background:linear-gradient(135deg,rgba(249,115,22,0.18),rgba(249,115,22,0.07));' +
           'border:1px solid rgba(249,115,22,0.45);color:#f97316;font-size:15px;font-weight:700;">+ Add Inventory</button>';
+  html += '</div>';
 
-  list.innerHTML = html;
+  // ── Card 2: Item Descriptions ──
+  html += '<div class="card">';
+  html += '<div class="slabel">Item Descriptions</div>';
+  html += '<div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:16px;">' +
+          'Edit what gets copied when you tap an item. Leave blank to use the default.</div>';
 
-  list.querySelectorAll('[data-field="price"]').forEach(function(inp) {
+  ITEMS.forEach(function(item) {
+    const current = (descs[item.id] || '').replace(/</g, '&lt;');
+    html += '<div style="margin-bottom:20px;">';
+    html += '<div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:7px;">' + item.name + '</div>';
+    html += '<textarea data-item-desc="' + item.id + '" rows="3" ' +
+            'placeholder="' + item.desc.replace(/"/g, '&quot;') + '" ' +
+            'style="font-size:12px;line-height:1.6;">' + current + '</textarea>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+  cont.innerHTML = html;
+
+  // Price inputs → auto-save on change
+  cont.querySelectorAll('[data-field="price"]').forEach(function(inp) {
     inp.addEventListener('change', function() {
       const c2 = getPartsConfig();
       const id = inp.getAttribute('data-part');
@@ -54,7 +79,8 @@ function renderPartsTab() {
     });
   });
 
-  list.querySelectorAll('.sw').forEach(function(wheel) {
+  // Stock wheels
+  cont.querySelectorAll('.sw').forEach(function(wheel) {
     const id    = wheel.getAttribute('data-part');
     const init  = parseInt(wheel.getAttribute('data-init')) || 0;
     const items = wheel.querySelectorAll('.swi');
@@ -82,6 +108,23 @@ function renderPartsTab() {
         c2[id].stock = cur;
         savePartsConfig(c2);
       }, 200);
+    });
+  });
+
+  // Item description textareas → debounced auto-save
+  const saveTimers = {};
+  cont.querySelectorAll('[data-item-desc]').forEach(function(ta) {
+    ta.addEventListener('input', function() {
+      const id = ta.getAttribute('data-item-desc');
+      clearTimeout(saveTimers[id]);
+      saveTimers[id] = setTimeout(function() {
+        const d   = getItemDescs();
+        const val = ta.value.trim();
+        if (val) d[id] = val;
+        else     delete d[id];
+        saveItemDescs(d);
+        toast('✓ Saved — will copy in Items tab');
+      }, 700);
     });
   });
 
@@ -168,6 +211,6 @@ function confirmAddInventory() {
   if (!anyAdded) { toast('Scroll a wheel to add units', '#f97316'); return; }
   savePartsConfig(cfg);
   closeAddInventory();
-  renderPartsTab();
+  renderSettingsTab();
   toast('✓ Inventory updated!');
 }

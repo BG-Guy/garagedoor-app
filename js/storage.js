@@ -11,3 +11,10 @@ function getPartsConfig() {
   catch { return {}; }
 }
 function savePartsConfig(cfg) { localStorage.setItem(PARTS_CFG_KEY, JSON.stringify(cfg)); }
+
+const ITEM_DESCS_KEY = 'gp_item_descs';
+function getItemDescs() {
+  try { return JSON.parse(localStorage.getItem(ITEM_DESCS_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveItemDescs(d) { localStorage.setItem(ITEM_DESCS_KEY, JSON.stringify(d)); }

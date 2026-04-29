@@ -12,4 +12,5 @@ const PRESET_PARTS = [
   { id: 'rolls',  icon: '🎞️', label: 'Rolls'  },
   { id: 'remote', icon: '📡', label: 'Remote' },
   { id: 'keypad', icon: '🔢', label: 'Keypad' },
+  { id: 'opener', icon: '🚪', label: 'Opener' },
 ];

@@ -81,6 +81,14 @@ const ITEMS = [
   },
 ];
 
+// Returns the custom description if set in Settings, otherwise the default
+function getItemDesc(id) {
+  const custom = getItemDescs();
+  if (custom[id] && custom[id].trim()) return custom[id];
+  const item = ITEMS.find(i => i.id === id);
+  return item ? item.desc : '';
+}
+
 function renderItemsTab() {
   const grid = document.getElementById('itemsGrid');
   if (!grid) return;
@@ -93,9 +101,11 @@ function renderItemsTab() {
 
   grid.querySelectorAll('.item-card').forEach(function(card) {
     card.addEventListener('click', function() {
-      const item = ITEMS.find(i => i.id === card.getAttribute('data-item'));
+      const id   = card.getAttribute('data-item');
+      const item = ITEMS.find(i => i.id === id);
       if (!item) return;
-      navigator.clipboard.writeText(item.desc).then(
+      const text = getItemDesc(id);
+      navigator.clipboard.writeText(text).then(
         function() {
           toast('✓ Copied: ' + item.name);
           card.classList.add('item-card--flash');
