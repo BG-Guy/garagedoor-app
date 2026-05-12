@@ -31,8 +31,9 @@ function editJob(id) {
   editingId = id;
   document.getElementById('entryDate').value  = entry.date        || '';
   document.getElementById('entryDesc').value  = entry.description || '';
-  document.getElementById('totalPrice').value = entry.totalPrice  || '';
-  document.getElementById('paidCC').value     = entry.paidCC      || '';
+  // Pre-fill with original (pre-fee) amounts so editing doesn't double-deduct
+  document.getElementById('totalPrice').value = entry.originalPrice != null ? entry.originalPrice : (entry.totalPrice || '');
+  document.getElementById('paidCC').value     = entry.originalCC   != null ? entry.originalCC    : (entry.paidCC    || '');
   document.getElementById('paidCheck').value  = entry.paidCheck   || '';
   document.getElementById('paidCash').value   = entry.paidCash    || '';
   document.getElementById('totalParts').value = entry.totalParts  || '';
@@ -61,22 +62,32 @@ function resetForm() {
 document.getElementById('entryForm').addEventListener('submit', function(e) {
   e.preventDefault();
 
+  // Ticket uses the original form values (before any fee deduction)
   const ticket    = generateTicketText();
   const partsList = partsRows.map(r => ({ label: r.label, price: r.price }));
 
+  const origPrice = +document.getElementById('totalPrice').value || 0;
+  const origCC    = +document.getElementById('paidCC').value     || 0;
+
+  // Deduct 4% CC processing fee from what's stored — company keeps the net amount
+  const netPrice  = Math.round((origPrice - origCC * 0.04) * 100) / 100;
+  const netCC     = Math.round(origCC * 0.96 * 100) / 100;
+
   const entry = {
-    id:          editingId || Date.now().toString(),
-    date:        document.getElementById('entryDate').value,
-    description: document.getElementById('entryDesc').value.trim(),
-    totalPrice:  +document.getElementById('totalPrice').value || 0,
-    paidCC:      +document.getElementById('paidCC').value     || 0,
-    paidCheck:   +document.getElementById('paidCheck').value  || 0,
-    paidCash:    +document.getElementById('paidCash').value   || 0,
-    totalParts:  +document.getElementById('totalParts').value || 0,
-    tip:         +document.getElementById('entryTip').value   || 0,
-    rawNote:     document.getElementById('parseInput').value.trim() || lastRawNote || '',
+    id:            editingId || Date.now().toString(),
+    date:          document.getElementById('entryDate').value,
+    description:   document.getElementById('entryDesc').value.trim(),
+    originalPrice: origPrice,   // what the customer was charged (for editing)
+    originalCC:    origCC,
+    totalPrice:    netPrice,    // net after CC fee — used for all calculations
+    paidCC:        netCC,
+    paidCheck:     +document.getElementById('paidCheck').value  || 0,
+    paidCash:      +document.getElementById('paidCash').value   || 0,
+    totalParts:    +document.getElementById('totalParts').value || 0,
+    tip:           +document.getElementById('entryTip').value   || 0,
+    rawNote:       document.getElementById('parseInput').value.trim() || lastRawNote || '',
     partsList,
-    ticketText:  ticket,
+    ticketText:    ticket,
   };
 
   if (editingId) {
