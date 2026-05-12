@@ -49,9 +49,7 @@ function exportCSV() {
     const parts = +e.totalParts || 0;
     const check = +e.paidCheck  || 0;
     const cash  = +e.paidCash   || 0;
-    const ccFee = cc * 0.04;
-    const net   = price - ccFee;
-    const comm  = (net - parts) * 0.30;
+    const comm  = (price - parts) * 0.30;
     const tipCC = cc > 0 ? (+e.tip || 0) : 0;
     const myDue = comm + parts + tipCC;
     const iGot  = check + cash;

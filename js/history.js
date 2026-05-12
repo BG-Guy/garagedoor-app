@@ -211,8 +211,7 @@ function renderHistory() {
     // Settlement formula (matches business.js)
     const cc     = +e.paidCC     || 0;
     const parts  = +e.totalParts || 0;
-    const net    = (+e.totalPrice || 0) - cc * 0.04;   // deduct 4% CC fee
-    const comm   = (net - parts) * 0.30;
+    const comm   = ((+e.totalPrice || 0) - parts) * 0.30;
     const tipCC  = cc > 0 ? (+e.tip || 0) : 0;
     const myDue  = comm + parts + tipCC;
     const iGot   = (+e.paidCheck||0) + (+e.paidCash||0);
@@ -300,12 +299,10 @@ function summarizeSelected() {
     const cc = +e.paidCC || 0;
     a.price += +e.totalPrice || 0; a.parts += +e.totalParts || 0;
     a.cc    += cc; a.cash += +e.paidCash||0; a.check += +e.paidCheck||0; a.tip += +e.tip||0;
-    a.ccFee += cc * 0.04;
     a.ccTip += cc > 0 ? (+e.tip || 0) : 0;
     return a;
-  }, {price:0,parts:0,cc:0,cash:0,check:0,tip:0,ccFee:0,ccTip:0});
-  const net    = t.price - t.ccFee;
-  const comm   = (net - t.parts) * 0.30;
+  }, {price:0,parts:0,cc:0,cash:0,check:0,tip:0,ccTip:0});
+  const comm   = (t.price - t.parts) * 0.30;
   const myDue  = comm + t.parts + t.ccTip;
   const iGot   = t.check + t.cash;
   const text   = [

@@ -19,14 +19,12 @@ function agg(entries) {
     acc.cash    += +e.paidCash   || 0;
     acc.parts   += +e.totalParts || 0;
     acc.tip     += +e.tip        || 0;
-    acc.ccFee   += cc * 0.04;
     acc.ccTip   += cc > 0 ? (+e.tip || 0) : 0;
     acc.jobs    += 1;
     return acc;
-  }, { revenue:0, cc:0, check:0, cash:0, parts:0, tip:0, ccFee:0, ccTip:0, jobs:0 });
+  }, { revenue:0, cc:0, check:0, cash:0, parts:0, tip:0, ccTip:0, jobs:0 });
 
-  a.netRevenue    = a.revenue - a.ccFee;
-  a.myCommission  = (a.netRevenue - a.parts) * 0.30;
+  a.myCommission  = (a.revenue - a.parts) * 0.30;
   a.commPlusParts = a.myCommission + a.parts;
   const myDue     = a.commPlusParts + a.ccTip;
   const iGot      = a.check + a.cash;
