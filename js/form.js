@@ -62,7 +62,6 @@ function resetForm() {
 document.getElementById('entryForm').addEventListener('submit', function(e) {
   e.preventDefault();
 
-  // Ticket uses the original form values (before any fee deduction)
   const ticket    = generateTicketText();
   const partsList = partsRows.map(r => ({ label: r.label, price: r.price }));
 
